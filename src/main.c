@@ -52,8 +52,8 @@
 #include "stdlib.h"
 #include "cmsis_os.h"
 //#include "ds18.h"
-#include "control.h"
-#include "display.h"
+//#include "control.h"
+//#include "display.h"
 #include "stm32f1xx_ll_gpio.h"
 //#include "step.h"
 #include "dcts.h"
@@ -110,8 +110,8 @@ int main(void){
 
     HAL_Init();
     SystemClock_Config();
-    MX_GPIO_Init();
-    MX_IWDG_Init();
+    //MX_GPIO_Init();
+    //MX_IWDG_Init();
     dcts_init();
     MX_RTC_Init();
     MX_ADC1_Init();
@@ -130,17 +130,17 @@ int main(void){
     defaultTaskHandle = osThreadCreate(osThread(ds18_task), NULL);
 */
 
-    osThreadDef(control_task, control_task, osPriorityNormal, 0, 364);
-    controlTaskHandle = osThreadCreate(osThread(control_task), NULL);
+    //osThreadDef(control_task, control_task, osPriorityNormal, 0, 364);
+    //controlTaskHandle = osThreadCreate(osThread(control_task), NULL);
 
-    osThreadDef(display_task, display_task, osPriorityNormal, 0, 512);
-    displayTaskHandle = osThreadCreate(osThread(display_task), NULL);
+    //osThreadDef(display_task, display_task, osPriorityNormal, 0, 512);
+    //displayTaskHandle = osThreadCreate(osThread(display_task), NULL);
 
     osThreadDef(buttons_task, buttons_task, osPriorityNormal, 0, 128);
     buttonsTaskHandle = osThreadCreate(osThread(buttons_task), NULL);
 
-    osThreadDef(menu_task, menu_task, osPriorityNormal, 0, 364);
-    menuTaskHandle = osThreadCreate(osThread(menu_task), NULL);
+    //osThreadDef(menu_task, menu_task, osPriorityNormal, 0, 364);
+    //menuTaskHandle = osThreadCreate(osThread(menu_task), NULL);
 
 #endif
 
