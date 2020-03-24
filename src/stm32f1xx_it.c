@@ -244,6 +244,7 @@ void USART1_IRQHandler(void)
 /* USER CODE BEGIN 1 */
 
 void EXTI9_5_IRQHandler(void) {
+    /*
     HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_5);
     HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_6);
     HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_7);
@@ -273,6 +274,7 @@ void EXTI9_5_IRQHandler(void) {
     if(sync_tick == 100){
         sync_tick = 0;
     }
+    */
 }
 
 /* USER CODE END 1 */

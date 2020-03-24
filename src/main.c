@@ -51,14 +51,11 @@
 #include "stm32f1xx_hal.h"
 #include "stdlib.h"
 #include "cmsis_os.h"
-//#include "ds18.h"
-//#include "control.h"
-//#include "display.h"
-#include "stm32f1xx_ll_gpio.h"
-//#include "step.h"
+#include "stm32f1xx_hal_gpio.h"
 #include "dcts.h"
 #include "pin_map.h"
 #include "buttons.h"
+#include "LCD.h"
 
 #define FEEDER 0
 #define DEFAULT_TASK_PERIOD 100
@@ -110,25 +107,17 @@ int main(void){
 
     HAL_Init();
     SystemClock_Config();
-    //MX_GPIO_Init();
-    //MX_IWDG_Init();
     dcts_init();
+    LCD_init();
+    /*
     MX_RTC_Init();
     MX_ADC1_Init();
-    //MX_USART1_UART_Init();
-    //MX_TIM3_Init();
-    //MX_TIM2_Init();
     HAL_ADC_Start(&hadc1);
     HAL_ADCEx_InjectedStart(&hadc1);
+    */
     osThreadDef(own_task, default_task, osPriorityNormal, 0, 364);
     defaultTaskHandle = osThreadCreate(osThread(own_task), NULL);
-#if FEEDER
-    osThreadDef(step_task, step_task, osPriorityNormal, 0, 364);
-    defaultTaskHandle = osThreadCreate(osThread(step_task), NULL);
-#else
-    /*osThreadDef(ds18_task, ds18_task, osPriorityHigh, 0, 364);
-    defaultTaskHandle = osThreadCreate(osThread(ds18_task), NULL);
-*/
+
 
     //osThreadDef(control_task, control_task, osPriorityNormal, 0, 364);
     //controlTaskHandle = osThreadCreate(osThread(control_task), NULL);
@@ -142,7 +131,6 @@ int main(void){
     //osThreadDef(menu_task, menu_task, osPriorityNormal, 0, 364);
     //menuTaskHandle = osThreadCreate(osThread(menu_task), NULL);
 
-#endif
 
     /* Start scheduler */
     osKernelStart();
@@ -312,13 +300,14 @@ static void MX_RTC_Init(void){
 
         save_float_to_bkp(2, dcts_act[0].set_value);
         save_to_bkp(3, dcts_act[0].state.control);
-
+/*
         save_float_to_bkp(4, sensor_state.dispersion*10);
         save_float_to_bkp(5, sensor_state.hysteresis*10);
         save_float_to_bkp(6, sensor_state.correction*10);
         save_to_bkp(7, sensor_state.buff_size);
 
         save_float_to_bkp(8, semistor_state.max_tmpr);
+*/
     }else{  // read data from bkpram
         HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
         HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
@@ -334,138 +323,23 @@ static void MX_RTC_Init(void){
 
         dcts_act[0].set_value = read_float_bkp(2, READ_FLOAT_UNSIGNED);
         dcts_act[0].state.control = read_bkp(3);
-
+/*
         sensor_state.dispersion = read_float_bkp(4, READ_FLOAT_UNSIGNED)/10;
         sensor_state.hysteresis = read_float_bkp(5, READ_FLOAT_UNSIGNED)/10;
         sensor_state.correction = read_float_bkp(6, READ_FLOAT_SIGNED)/10;
         sensor_state.buff_size = read_bkp(7);
 
         semistor_state.max_tmpr = read_float_bkp(8, READ_FLOAT_UNSIGNED);
-    }
-}
-
-/* TIM3 init function */
-static void MX_TIM3_Init(void){
-    TIM_ClockConfigTypeDef sClockSourceConfig;
-    TIM_MasterConfigTypeDef sMasterConfig;
-    TIM_OC_InitTypeDef pwm_handle;
-    htim3.Instance = TIM3;
-    htim3.Init.Prescaler = 0;
-    htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim3.Init.Period = MAX_PWM_VALUE;
-    htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
-    if (HAL_TIM_Base_Init(&htim3) != HAL_OK)  {
-        _Error_Handler(__FILE__, __LINE__);
-    }
-    sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-    if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)  {
-        _Error_Handler(__FILE__, __LINE__);
-    }
-    if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)  {
-        _Error_Handler(__FILE__, __LINE__);
-    }
-    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-    if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)  {
-        _Error_Handler(__FILE__, __LINE__);
-    }
-    pwm_handle.OCMode = TIM_OCMODE_PWM1;
-    pwm_handle.Pulse = 16000;
-    pwm_handle.OCPolarity = TIM_OCPOLARITY_HIGH;
-    pwm_handle.OCFastMode = TIM_OCFAST_DISABLE;
-    if (HAL_TIM_PWM_ConfigChannel(&htim3, &pwm_handle, TIM_CHANNEL_1) != HAL_OK)  {
-        _Error_Handler(__FILE__, __LINE__);
-    }
-    HAL_TIM_MspPostInit(&htim3);
-}
-
-
-/* USART1 init function */
-static void MX_USART1_UART_Init(void)
-{
-
-    huart1.Instance = USART1;
-    huart1.Init.BaudRate = 115200;
-    huart1.Init.WordLength = UART_WORDLENGTH_8B;
-    huart1.Init.StopBits = UART_STOPBITS_1;
-    huart1.Init.Parity = UART_PARITY_NONE;
-    huart1.Init.Mode = UART_MODE_TX_RX;
-    huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-    if (HAL_UART_Init(&huart1) != HAL_OK)
-    {
-        _Error_Handler(__FILE__, __LINE__);
-    }
-
-}
-
-/** Configure pins as 
-        * Analog
-        * Input
-        * Output
-        * EVENT_OUT
-        * EXTI
 */
-static void MX_GPIO_Init(void){
-
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-    /* GPIO Ports Clock Enable */
-    __HAL_RCC_GPIOC_CLK_ENABLE();
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    __HAL_RCC_GPIOB_CLK_ENABLE();
-    __HAL_RCC_GPIOD_CLK_ENABLE();
-
-    /* Buttons */
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-
-    GPIO_InitStruct.Pin = UP_PIN;
-    HAL_GPIO_Init(UP_PORT, &GPIO_InitStruct);
-    GPIO_InitStruct.Pin = DOWN_PIN;
-    HAL_GPIO_Init(DOWN_PORT, &GPIO_InitStruct);
-    GPIO_InitStruct.Pin = LEFT_PIN;
-    HAL_GPIO_Init(LEFT_PORT, &GPIO_InitStruct);
-    GPIO_InitStruct.Pin = RIGHT_PIN;
-    HAL_GPIO_Init(RIGHT_PORT, &GPIO_InitStruct);
-    GPIO_InitStruct.Pin = OK_PIN;
-    HAL_GPIO_Init(OK_PORT, &GPIO_InitStruct);
-
-    /* ADC inputs
-    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-
-    GPIO_InitStruct.Pin = LOAD_TEMP_PIN;
-    HAL_GPIO_Init(LOAD_TEMP_PORT, &GPIO_InitStruct);
-    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-    GPIO_InitStruct.Pin = REG_TEMP_PIN;
-    HAL_GPIO_Init(REG_TEMP_PORT, &GPIO_InitStruct);
-    */
-
-    /* DEBUG pins */
-
-    /* I2C display pins */
-
-    /* 50 Hz SYNC pin */
-    GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-    GPIO_InitStruct.Pin = SYNC_PIN;
-    HAL_GPIO_Init(SYNC_PORT, &GPIO_InitStruct);
-
-    HAL_NVIC_SetPriority(EXTI9_5_IRQn, 1, 1);
-    HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
-
-    /* REG_ON pin */
-    HAL_GPIO_WritePin(REG_ON_PORT, REG_ON_PIN, GPIO_PIN_SET);
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-    GPIO_InitStruct.Pin = REG_ON_PIN;
-    HAL_GPIO_Init(REG_ON_PORT, &GPIO_InitStruct);
+    }
 }
 
-/* StartDefaultTask function */
+
+/**
+ * @brief default_task
+ * @param argument - None
+ * @todo add group
+ */
 void default_task(void const * argument){
 
     (void)argument;
@@ -490,7 +364,6 @@ void default_task(void const * argument){
         HAL_IWDG_Refresh(&hiwdg);
         osDelayUntil(&last_wake_time, DEFAULT_TASK_PERIOD);
     }
-    /* USER CODE END 5 */
 }
 /* TIM2 init function */
 static void MX_TIM2_Init(void){
