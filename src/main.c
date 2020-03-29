@@ -115,9 +115,10 @@ int main(void){
     HAL_ADC_Start(&hadc1);
     HAL_ADCEx_InjectedStart(&hadc1);
     */
+    /*
     osThreadDef(own_task, default_task, osPriorityNormal, 0, 364);
     defaultTaskHandle = osThreadCreate(osThread(own_task), NULL);
-
+    */
 
     //osThreadDef(control_task, control_task, osPriorityNormal, 0, 364);
     //controlTaskHandle = osThreadCreate(osThread(control_task), NULL);
@@ -154,7 +155,7 @@ void SystemClock_Config(void)
 
     /**Initializes the CPU, AHB and APB busses clocks
     */
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
     RCC_OscInitStruct.HSEState = RCC_HSE_ON;
     RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
     RCC_OscInitStruct.HSIState = RCC_HSI_ON;
@@ -182,11 +183,9 @@ void SystemClock_Config(void)
         _Error_Handler(__FILE__, __LINE__);
     }
 
-    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_RTC|RCC_PERIPHCLK_ADC
-            |RCC_PERIPHCLK_USB;
+    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_RTC|RCC_PERIPHCLK_ADC;
     PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
     PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
-    PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL_DIV1_5;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
     {
         _Error_Handler(__FILE__, __LINE__);
@@ -347,7 +346,7 @@ void default_task(void const * argument){
     RTC_DateTypeDef date;
     uint32_t last_wake_time = osKernelSysTick();
 
-    HAL_IWDG_Refresh(&hiwdg);
+    //HAL_IWDG_Refresh(&hiwdg);
     while(1){
         HAL_RTC_GetDate(&hrtc,&date,RTC_FORMAT_BIN);
         HAL_RTC_GetTime(&hrtc,&time,RTC_FORMAT_BIN);
@@ -361,7 +360,7 @@ void default_task(void const * argument){
         dcts.dcts_rtc.year = date.Year + 2000;
         dcts.dcts_rtc.weekday = date.WeekDay;
 
-        HAL_IWDG_Refresh(&hiwdg);
+        //HAL_IWDG_Refresh(&hiwdg);
         osDelayUntil(&last_wake_time, DEFAULT_TASK_PERIOD);
     }
 }

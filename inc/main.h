@@ -73,12 +73,15 @@
 #define STEP_OUT2_1 LL_GPIO_PIN_11
 #define STEP_OUT2_2 LL_GPIO_PIN_12
 #define STEP_PORT GPIOB
+
 /**USART1 GPIO Configuration
 PA9     ------> USART1_TX
 PA10     ------> USART1_RX
 */
+/*
 #define LED_PORT GPIOC
 #define LED_PIN  LL_GPIO_PIN_13
+*/
 
 
 /* ########################## Assert Selection ############################## */

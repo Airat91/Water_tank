@@ -29,7 +29,7 @@
 #define DEBUG_TCK_PORT  GPIOA
 #define DEBUG_TCK_PIN   GPIO_PIN_14
 #define LCD_CS_PORT     GPIOA
-#define LCD_CS_PIN     GPIO_PIN_15
+#define LCD_CS_PIN      GPIO_PIN_15
 
 #define LCD_SCK_PORT    GPIOB
 #define LCD_SCK_PIN     GPIO_PIN_3
