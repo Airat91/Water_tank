@@ -20,12 +20,7 @@
    ----------------------------------------------------------------------
  */
 #ifndef FONTS_H
-#define FONTS_H 120
-
-/* C++ detection */
-#ifdef __cplusplus
-extern C {
-#endif
+#define FONTS_H 1
 
 /**
  *
@@ -42,13 +37,16 @@ extern C {
 #include "string.h"
 
 /**
- * @defgroup LIB_Typedefs
- * @brief    Library Typedefs
- * @{
+ * @defgroup FONTS
+ * @ingroup LCD
+ * @brief Fonts for print on LCD
  */
 
+/*========== TYPEDEFS ==========*/
+
 /**
- * @brief  Font structure used on my LCD libraries
+ * @brief  Font structure used in my LCD libraries
+ * @ingroup FONTS
  */
 typedef struct {
 	uint8_t FontWidth;    /*!< Font width in pixels */
@@ -57,74 +55,40 @@ typedef struct {
 	const uint16_t *data; /*!< Pointer to data font data array */
 } FontDef_t;
 
-/** 
- * @brief  String length and height 
- */
-typedef struct {
-	uint16_t Length;      /*!< String length in units of pixels */
-	uint16_t Height;      /*!< String height in units of pixels */
-} FONTS_SIZE_t;
-
-/**
- * @}
- */
-
-/**
- * @defgroup FONTS_FontVariables
- * @brief    Library font variables
- * @{
- */
-
 /**
  * @brief  7 x 10 pixels font size structure 
+ * @ingroup FONTS
  */
 extern FontDef_t Font_7x10;
 
 /**
+ * @brief Data of Font_7x10
+ * @ingroup FONTS
+ */
+extern const uint16_t Font7x10[];
+
+/**
  * @brief  11 x 18 pixels font size structure 
+ * @ingroup FONTS
  */
 extern FontDef_t Font_11x18;
 
 /**
+ * @brief Data of Font_11x18
+ * @ingroup FONTS
+ */
+extern const uint16_t Font11x18[];
+
+/**
  * @brief  16 x 26 pixels font size structure 
+ * @ingroup FONTS
  */
 extern FontDef_t Font_16x26;
 
 /**
- * @}
+ * @brief Data of Font_16x26
+ * @ingroup FONTS
  */
- 
-/**
- * @defgroup FONTS_Functions
- * @brief    Library functions
- * @{
- */
+extern const uint16_t Font16x26[];
 
-/**
- * @brief  Calculates string length and height in units of pixels depending on string and font used
- * @param  *str: String to be checked for length and height
- * @param  *SizeStruct: Pointer to empty @ref FONTS_SIZE_t structure where informations will be saved
- * @param  *Font: Pointer to @ref FontDef_t font used for calculations
- * @retval Pointer to string used for length and height
- */
-char* FONTS_GetStringSize(char* str, FONTS_SIZE_t* SizeStruct, FontDef_t* Font);
-
-/**
- * @}
- */
- 
-/**
- * @}
- */
- 
-/**
- * @}
- */
-
-/* C++ detection */
-#ifdef __cplusplus
-}
-#endif
-
- 
 #endif

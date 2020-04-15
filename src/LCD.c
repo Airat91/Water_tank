@@ -13,19 +13,13 @@
   * @brief work with LCD 128x64
   */
 
-/**
-  * @addtogroup LCD
-  * @{
-  */
-#define LCD_SPI SPI1
-#define MAX_X 128
-#define MAX_Y 64
-#define LCD_BUF_ARRAY_LEN 1024
-/**
-  * @}
-  */
 
 SPI_HandleTypeDef lcd_spi = {0};
+LCD_t LCD = {
+    .x = 0,
+    .y = 0,
+    .backlight = 0,
+};
 uint8_t LCD_buf[1024] = {0};
 
 /*========== FUNCTIONS ==========*/
@@ -54,9 +48,19 @@ int LCD_init (void){
     LCD_send(LCD_RW_WRITE, LCD_RS_COMM, 0x36);
 
     LCD_clr();
+    LCD_backlight_on();
+    LCD_set_xy(0,38);
+    LCD_print("    LCD", &Font_11x18, LCD_COLOR_BLACK);
+    LCD_set_xy(0,20);
+    LCD_print("initialised", &Font_11x18, LCD_COLOR_BLACK);
+    LCD_set_xy(5,2);
+    LCD_print("successful", &Font_11x18, LCD_COLOR_BLACK);
     LCD_update();
-    HAL_Delay(500);
-
+    HAL_Delay(5000);
+    LCD_backlight_off();
+    LCD_clr();
+    LCD_update();
+/*
     uint8_t y = 0;
     for(uint8_t x = 0; x < 128; x++){
         y = (uint8_t)(20*sin((double)x*0.17) + 32);
@@ -67,6 +71,14 @@ int LCD_init (void){
     LCD_update();
     LCD_invert_area(30,30,100,63);
     LCD_update();
+
+    LCD_set_xy(0, 0);
+    LCD_print("Ayrat", &Font_7x10, LCD_COLOR_BLACK);
+    LCD_update();
+    LCD_backlight_on();
+    HAL_Delay(500);
+    LCD_backlight_off();
+    */
     return result;
 }
 /**
@@ -194,7 +206,7 @@ void LCD_update(void){
             LCD_send(LCD_RW_WRITE, LCD_RS_COMM, (0x80));
             y++;
         }
-        LCD_send(LCD_RW_WRITE, LCD_RS_DATA, LCD_buf[i]);
+        LCD_send(LCD_RW_WRITE, LCD_RS_DATA, LCD.buf[i]);
     }
 }
 /**
@@ -219,9 +231,9 @@ int LCD_set_pixel(uint8_t x, uint8_t y, LCD_color_t color){
             y -= 32;
         }
         if(color == LCD_COLOR_BLACK){
-            LCD_buf[y*32 + x_pos] |= (0x80 >> x_shift);
+            LCD.buf[y*32 + x_pos] |= (0x80 >> x_shift);
         }else{
-            LCD_buf[y*32 + x_pos] &= ~(0x80 >> x_shift);
+            LCD.buf[y*32 + x_pos] &= ~(0x80 >> x_shift);
         }
     }
     return result;
@@ -283,7 +295,7 @@ int LCD_fill_area(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, LCD_color_t co
  */
 void LCD_clr(void){
     for (uint16_t i = 0; i < LCD_BUF_ARRAY_LEN; i++) {
-        LCD_buf[i] = 0x00;
+        LCD.buf[i] = 0x00;
     }
 }
 /**
@@ -342,11 +354,123 @@ int LCD_invert_area(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2){
                 x_pos += 16;
                 y_tmp -= 32;
             }
-            if(LCD_buf[y_tmp*32 + x_pos] & (0x80 >> x_shift)){
+            if(LCD.buf[y_tmp*32 + x_pos] & (0x80 >> x_shift)){
                 LCD_set_pixel(x,y,LCD_COLOR_WHITE);
             }else{
                 LCD_set_pixel(x,y,LCD_COLOR_BLACK);
             }
+        }
+    }
+    return result;
+}
+
+/**
+ * @brief Set coordinate to LCD var
+ * @param x, y - coordinates
+ * @ingroup LCD
+ * @return  0 - OK,\n
+ *          -1 - x out of range\n
+ *          -2 - y out of range\n
+ *
+ * Automatically corrects x, y values if out of range,\n
+ */
+int LCD_set_xy(uint8_t x, uint8_t y){
+    int result = 0;
+    if(x > MAX_X){
+        x = MAX_X;
+        result = -1;
+    }
+    if(y > MAX_Y){
+        y = MAX_Y;
+        result = -2;
+    }
+    LCD.x = x;
+    LCD.y = y;
+    return result;
+}
+
+/**
+ * @brief Turn on LCD backlight
+ * @ingroup LCD
+ */
+void LCD_backlight_on (void){
+    HAL_GPIO_WritePin(LCD_LIGHT_PORT, LCD_LIGHT_PIN, GPIO_PIN_RESET);
+    LCD.backlight = 1;
+}
+
+/**
+ * @brief Turn off LCD backlight
+ * @ingroup LCD
+ */
+void LCD_backlight_off (void){
+    HAL_GPIO_WritePin(LCD_LIGHT_PORT, LCD_LIGHT_PIN, GPIO_PIN_SET);
+    LCD.backlight = 0;
+}
+
+/**
+ * @brief Toggle LCD backlight
+ * @ingroup LCD
+ */
+void LCD_backlight_toggle (void){
+    if(LCD.backlight == 0){
+        HAL_GPIO_WritePin(LCD_LIGHT_PORT, LCD_LIGHT_PIN, GPIO_PIN_RESET);
+        LCD.backlight = 1;
+    }else{
+        HAL_GPIO_WritePin(LCD_LIGHT_PORT, LCD_LIGHT_PIN, GPIO_PIN_SET);
+        LCD.backlight = 0;
+    }
+}
+
+/**
+ * @brief Print char on LCD
+ * @param ch - character to be written
+ * @param font - pointer to structure with used font
+ * @param color - color used for drawing = {LCD_COLOR_BLACK, LCD_COLOR_WHITE}
+ * @ingroup LCD
+ * @return  0 - OK,\n
+ *          -1 - have not free area for char\n
+ *
+ * @warning Automatically increases LCD.x position after print
+ */
+int LCD_print_char(char ch, FontDef_t* font, LCD_color_t color){
+    int result = 0;
+    //check coordinates values
+    if((LCD.x + font->FontWidth > MAX_X) && (LCD.y + font->FontHeight > MAX_Y)){
+        result = -1;
+    }else{
+        // go through font
+        uint16_t line;
+        for (uint8_t line_num = 1; line_num < (font->FontHeight+1); line_num++) {
+            line = font->data[(ch - font->shift + 1) * font->FontHeight - line_num];
+            for (uint8_t x_pos = 0; x_pos < font->FontWidth; x_pos++) {
+                if (line & (0x8000 >> x_pos)) {
+                    LCD_set_pixel(LCD.x + x_pos, (LCD.y + line_num), color);
+                }
+            }
+        }
+        LCD.x += font->FontWidth;
+    }
+    return result;
+}
+
+/**
+ * @brief Print string on LCD
+ * @param string - pionter to string buffer
+ * @param font - pointer to structure with used font
+ * @param color - color used for drawing = {LCD_COLOR_BLACK, LCD_COLOR_WHITE}
+ * @ingroup LCD
+ * @return  0 - OK,\n
+ *          -1 - have not free area for next char\n
+ *
+ * @warning Automatically increases LCD.x position after print
+ */
+int LCD_print(char* string, FontDef_t* font, LCD_color_t color){
+    int result = 0;
+    while (*string) {
+        if (LCD_print_char(*string, font, color) == 0) {
+            string++;
+        }else{
+            result = -1;
         }
     }
     return result;

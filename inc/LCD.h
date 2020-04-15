@@ -1,9 +1,22 @@
 #include "stdint.h"
 #include "stm32f1xx_hal.h"
 #include "stm32f1xx_hal_spi.h"
+#include "fonts.h"
 
 #ifndef LCD_H
 #define LCD_H 1
+
+/**
+  * @addtogroup LCD
+  * @{
+  */
+#define LCD_SPI SPI1
+#define MAX_X 128
+#define MAX_Y 64
+#define LCD_BUF_ARRAY_LEN 1024
+/**
+  * @}
+  */
 
 /*========== TYPEDEFS ==========*/
 
@@ -22,6 +35,13 @@ typedef enum {
     LCD_COLOR_BLACK = 1,
 }LCD_color_t;
 
+typedef struct {
+    uint8_t x;
+    uint8_t y;
+    uint8_t backlight;
+    uint8_t buf[LCD_BUF_ARRAY_LEN];
+}LCD_t;
+
 /**
  * @brief lcd_spi
  * @ingroup LCD
@@ -29,10 +49,10 @@ typedef enum {
 extern SPI_HandleTypeDef lcd_spi;
 
 /**
- * @brief LCD_buf
+ * @brief Params of LCD
  * @ingroup LCD
  */
-extern uint8_t LCD_buf[];
+extern LCD_t LCD;
 
 /*========== FUNCTION PROTOTYPES ==========*/
 
@@ -48,5 +68,11 @@ int LCD_set_pixel(uint8_t x, uint8_t y, LCD_color_t color);
 int LCD_fill_area(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, LCD_color_t color);
 int LCD_invert_area(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2);
 void LCD_clr(void);
+int LCD_set_xy(uint8_t x, uint8_t y);
+void LCD_backlight_on (void);
+void LCD_backlight_off (void);
+void LCD_backlight_toggle (void);
+int LCD_print_char(char ch, FontDef_t* font, LCD_color_t color);
+int LCD_print(char* string, FontDef_t* font, LCD_color_t color);
 
 #endif // LCD_H
