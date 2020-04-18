@@ -56,6 +56,7 @@
 #include "pin_map.h"
 #include "buttons.h"
 #include "LCD.h"
+#include "adc.h"
 
 #define FEEDER 0
 #define DEFAULT_TASK_PERIOD 100
@@ -67,8 +68,6 @@ typedef enum{
 
 
 /* Private variables ---------------------------------------------------------*/
-ADC_HandleTypeDef hadc1;
-IWDG_HandleTypeDef hiwdg;
 RTC_HandleTypeDef hrtc;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
@@ -78,6 +77,7 @@ osThreadId buttonsTaskHandle;
 osThreadId displayTaskHandle;
 osThreadId menuTaskHandle;
 osThreadId controlTaskHandle;
+osThreadId adcTaskHandle;
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -123,8 +123,11 @@ int main(void){
     //osThreadDef(control_task, control_task, osPriorityNormal, 0, 364);
     //controlTaskHandle = osThreadCreate(osThread(control_task), NULL);
 
-    //osThreadDef(display_task, display_task, osPriorityNormal, 0, 512);
-    //displayTaskHandle = osThreadCreate(osThread(display_task), NULL);
+    osThreadDef(display_task, display_task, osPriorityNormal, 0, 512);
+    displayTaskHandle = osThreadCreate(osThread(display_task), NULL);
+
+    osThreadDef(adc_task, adc_task, osPriorityNormal, 0, 512);
+    adcTaskHandle = osThreadCreate(osThread(adc_task), NULL);
 
     osThreadDef(buttons_task, buttons_task, osPriorityNormal, 0, 128);
     buttonsTaskHandle = osThreadCreate(osThread(buttons_task), NULL);
@@ -201,68 +204,6 @@ void SystemClock_Config(void)
 
     /* SysTick_IRQn interrupt configuration */
     HAL_NVIC_SetPriority(SysTick_IRQn, 15, 0);
-}
-
-/* ADC1 init function */
-static void MX_ADC1_Init(void)
-{
-    ADC_InjectionConfTypeDef sConfigInjected = {0};
-
-    /* Common config */
-    hadc1.Instance = ADC1;
-    hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
-    hadc1.Init.ContinuousConvMode = ENABLE;
-    hadc1.Init.DiscontinuousConvMode = DISABLE;
-    hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-    hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-    hadc1.Init.NbrOfConversion = 3;
-    if (HAL_ADC_Init(&hadc1) != HAL_OK)
-    {
-      Error_Handler();
-    }
-
-    /* Configure Injected Channels */
-    sConfigInjected.InjectedChannel = ADC_CHANNEL_0;
-    sConfigInjected.InjectedRank = ADC_INJECTED_RANK_1;
-    sConfigInjected.InjectedNbrOfConversion = 3;
-    sConfigInjected.InjectedSamplingTime = ADC_SAMPLETIME_239CYCLES_5;
-    sConfigInjected.ExternalTrigInjecConv = ADC_INJECTED_SOFTWARE_START;
-    sConfigInjected.AutoInjectedConv = ENABLE;
-    sConfigInjected.InjectedDiscontinuousConvMode = DISABLE;
-    sConfigInjected.InjectedOffset = 0;
-    if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
-    {
-      Error_Handler();
-    }
-
-    sConfigInjected.InjectedChannel = ADC_CHANNEL_1;
-    sConfigInjected.InjectedRank = ADC_INJECTED_RANK_2;
-    if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
-    {
-      Error_Handler();
-    }
-
-    sConfigInjected.InjectedChannel = ADC_CHANNEL_VREFINT;
-    sConfigInjected.InjectedRank = ADC_INJECTED_RANK_3;
-    if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
-    {
-      Error_Handler();
-    }
-
-}
-
-/* IWDG init function */
-static void MX_IWDG_Init(void)
-{
-
-    hiwdg.Instance = IWDG;
-    hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
-    hiwdg.Init.Reload = 4095;
-    if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
-    {
-        _Error_Handler(__FILE__, __LINE__);
-    }
-
 }
 
 /* RTC init function */
@@ -362,6 +303,31 @@ void default_task(void const * argument){
 
         //HAL_IWDG_Refresh(&hiwdg);
         osDelayUntil(&last_wake_time, DEFAULT_TASK_PERIOD);
+    }
+}
+
+void display_task(void const * argument){
+    (void)argument;
+    char string[100];
+    uint32_t last_wake_time = osKernelSysTick();
+    adc_init();
+    while(1){
+        LCD_clr();
+
+        LCD_set_xy(0,50);
+        sprintf(string, "PWR    %5.1fV", (double)dcts.dcts_pwr);
+        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
+        LCD_set_xy(0,40);
+        sprintf(string, "Level  %5.1f%s", (double)dcts_meas[0].value, dcts_meas[0].unit);
+        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
+        LCD_set_xy(0,30);
+        sprintf(string, "Temper %5.1f%s", (double)dcts_meas[1].value, dcts_meas[1].unit);
+        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
+        LCD_update();
+        osDelayUntil(&last_wake_time, 1000);
     }
 }
 /* TIM2 init function */
