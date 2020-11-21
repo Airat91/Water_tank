@@ -17,13 +17,16 @@
 #define WTR_TMP_PORT    GPIOA
 #define WTR_TMP_PIN     GPIO_PIN_5
 
-#define LEFT_PORT       GPIOA
-#define LEFT_PIN        GPIO_PIN_8
-#define DOWN_PORT       GPIOA
-#define DOWN_PIN        GPIO_PIN_9
-#define UP_PORT         GPIOA
-#define UP_PIN          GPIO_PIN_10
-
+#define OK_PORT         GPIOA
+#define OK_PIN          GPIO_PIN_8
+#define SET_PORT        GPIOA
+#define SET_PIN         GPIO_PIN_9
+#define BREAK_PORT      GPIOA
+#define BREAK_PIN       GPIO_PIN_10
+#define AM2302_2_PORT   GPIOA
+#define AM2302_2_PIN    GPIO_PIN_11
+#define AM2302_1_PORT   GPIOA
+#define AM2302_1_PIN    GPIO_PIN_12
 #define DEBUG_TMS_PORT  GPIOA
 #define DEBUG_TMS_PIN   GPIO_PIN_13
 #define DEBUG_TCK_PORT  GPIOA
@@ -38,18 +41,16 @@
 #define LCD_MOSI_PORT   GPIOB
 #define LCD_MOSI_PIN    GPIO_PIN_5
 #define LCD_LIGHT_PORT  GPIOB
-#define LCD_LIGHT_PIN   GPIO_PIN_7
+#define LCD_LIGHT_PIN   GPIO_PIN_6
 
-#define AM2302_2_PORT   GPIOB
-#define AM2302_2_PIN    GPIO_PIN_10
-#define AM2302_1_PORT   GPIOB
-#define AM2302_1_PIN    GPIO_PIN_11
-#define BREAK_PORT      GPIOB
-#define BREAK_PIN       GPIO_PIN_12
-#define SET_PORT        GPIOB
-#define SET_PIN         GPIO_PIN_13
-#define OK_PORT         GPIOB
-#define OK_PIN          GPIO_PIN_14
+#define AM2302_3_PORT   GPIOB
+#define AM2302_3_PIN    GPIO_PIN_11
+#define UP_PORT         GPIOB
+#define UP_PIN          GPIO_PIN_12
+#define DOWN_PORT       GPIOB
+#define DOWN_PIN        GPIO_PIN_13
+#define LEFT_PORT       GPIOB
+#define LEFT_PIN        GPIO_PIN_14
 #define RIGHT_PORT      GPIOB
 #define RIGHT_PIN       GPIO_PIN_15
 
