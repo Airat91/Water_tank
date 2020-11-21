@@ -51,6 +51,8 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
+#include "stdint.h"
+
 #define AIR_PORT GPIOA
 #define AIR_PIN  LL_GPIO_PIN_7
 #define FLOW_PORT GPIOA
@@ -74,14 +76,8 @@
 #define STEP_OUT2_2 LL_GPIO_PIN_12
 #define STEP_PORT GPIOB
 
-/**USART1 GPIO Configuration
-PA9     ------> USART1_TX
-PA10     ------> USART1_RX
-*/
-/*
-#define LED_PORT GPIOC
-#define LED_PIN  LL_GPIO_PIN_13
-*/
+
+#define TIME_YIELD_THRESHOLD 100
 
 
 /* ########################## Assert Selection ############################## */
@@ -96,6 +92,7 @@ PA10     ------> USART1_RX
 #endif
 
 void _Error_Handler(char *, int);
+extern uint32_t us_cnt_H;
 
 #define Error_Handler() _Error_Handler(__FILE__, __LINE__)
 #ifdef __cplusplus
@@ -103,6 +100,9 @@ void _Error_Handler(char *, int);
 #endif
 
 void display_task(void const * argument);
+uint32_t us_tim_get_value(void);
+void us_tim_delay(uint32_t us);
+
 #endif /* __MAIN_H__ */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

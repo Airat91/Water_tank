@@ -56,29 +56,9 @@ int LCD_init (void){
     LCD_set_xy(5,2);
     LCD_print("successful", &Font_11x18, LCD_COLOR_BLACK);
     LCD_update();
-    HAL_Delay(5000);
-    LCD_backlight_off();
+    HAL_Delay(2000);
     LCD_clr();
     LCD_update();
-/*
-    uint8_t y = 0;
-    for(uint8_t x = 0; x < 128; x++){
-        y = (uint8_t)(20*sin((double)x*0.17) + 32);
-        LCD_set_pixel(x,y,LCD_COLOR_BLACK);
-    }
-    LCD_update();
-    LCD_fill_area(60,55,80,63,LCD_COLOR_BLACK);
-    LCD_update();
-    LCD_invert_area(30,30,100,63);
-    LCD_update();
-
-    LCD_set_xy(0, 0);
-    LCD_print("Ayrat", &Font_7x10, LCD_COLOR_BLACK);
-    LCD_update();
-    LCD_backlight_on();
-    HAL_Delay(500);
-    LCD_backlight_off();
-    */
     return result;
 }
 /**

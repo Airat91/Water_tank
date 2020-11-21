@@ -57,6 +57,12 @@
 #include "buttons.h"
 #include "LCD.h"
 #include "adc.h"
+#include "portable.h"
+#include "am2302.h"
+
+/**
+  * @defgroup MAIN
+  */
 
 #define FEEDER 0
 #define DEFAULT_TASK_PERIOD 100
@@ -82,20 +88,22 @@ osThreadId adcTaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
+//static void MX_GPIO_Init(void);
 static void MX_IWDG_Init(void);
 static void MX_RTC_Init(void);
-static void MX_ADC1_Init(void);
-static void MX_USART1_UART_Init(void);
-static void MX_TIM2_Init(void);
-static void MX_TIM3_Init(void);
+//static void MX_ADC1_Init(void);
+//static void MX_USART1_UART_Init(void);
+static void tim2_init(void);
 void default_task(void const * argument);
+
 static void save_to_bkp(u8 bkp_num, u8 var);
 static void save_float_to_bkp(u8 bkp_num, float var);
 static u8 read_bkp(u8 bkp_num);
 static float read_float_bkp(u8 bkp_num, u8 sign);
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+
+uint32_t us_cnt_H = 0;
 
 
 /**
@@ -107,6 +115,7 @@ int main(void){
 
     HAL_Init();
     SystemClock_Config();
+    tim2_init();
     dcts_init();
     LCD_init();
     /*
@@ -311,33 +320,78 @@ void display_task(void const * argument){
     char string[100];
     uint32_t last_wake_time = osKernelSysTick();
     adc_init();
+    uint32_t last = 0;
+    uint32_t period = 0;
+    uint32_t current = 0;
+    const float vmax = 114.0;
+    uint8_t high_lev = 0;
+    am2302_data_t am2302_3 = {0};
+    uint8_t tick = 0;
+    float tmpr = 0.0;
+    float hum = 0.0;
     while(1){
         LCD_clr();
 
-        LCD_set_xy(0,50);
-        sprintf(string, "PWR    %5.1fV", (double)dcts.dcts_pwr);
+        // print water tank
+        LCD_fill_area(0,0,49,63,LCD_COLOR_BLACK);
+        LCD_fill_area(1,1,48,62,LCD_COLOR_WHITE);
+
+        // print values
+        LCD_set_xy(3,45);
+        sprintf(string, "%3.1f%s", (double)dcts_meas[1].value, dcts_meas[1].unit);
+        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+        LCD_set_xy(3,5);
+        sprintf(string, "%3.1f%s", (double)dcts_meas[0].value, dcts_meas[0].unit);
         LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
 
-        LCD_set_xy(0,40);
-        sprintf(string, "Level  %5.1f%s", (double)dcts_meas[0].value, dcts_meas[0].unit);
-        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+        // fill water level
+        high_lev = (uint8_t)(dcts_meas[0].value/vmax*62);
+        if(high_lev > 61){
+            high_lev = 61;
+        }
+        LCD_invert_area(1,1,48,high_lev+1);
 
-        LCD_set_xy(0,30);
-        sprintf(string, "Temper %5.1f%s", (double)dcts_meas[1].value, dcts_meas[1].unit);
+        if(tick == 2){
+            am2302_3 = am2302_get(2);
+            tick = 0;
+
+            tmpr = (float)am2302_3.tmpr/10;
+            hum = (float)am2302_3.hum/10;
+        }
+
+        LCD_set_xy(52,45);
+        sprintf(string, "T %3.1f", tmpr);
         LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+        LCD_set_xy(52,35);
+        sprintf(string, "H %2.1f", hum);
+        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+        tick++;
+
+        // check us timer
+        /*last = us_tim_get_value();
+        osDelay(20);
+        current = us_tim_get_value();
+        period = current - last;
+        LCD_set_xy(52,45);
+        sprintf(string, "%d", (int)period);
+        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);*/
 
         LCD_update();
         osDelayUntil(&last_wake_time, 1000);
     }
 }
-/* TIM2 init function */
-static void MX_TIM2_Init(void){
+/**
+ * @brief Init us timer
+ * @ingroup MAIN
+ */
+static void tim2_init(void){
     TIM_ClockConfigTypeDef sClockSourceConfig;
     TIM_MasterConfigTypeDef sMasterConfig;
+    __HAL_RCC_TIM2_CLK_ENABLE();
     htim2.Instance = TIM2;
     htim2.Init.Prescaler = 71;
     htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim2.Init.Period = 65000;
+    htim2.Init.Period = 0xFFFF;
     htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
     if (HAL_TIM_Base_Init(&htim2) != HAL_OK)  {
@@ -352,9 +406,39 @@ static void MX_TIM2_Init(void){
     if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)  {
         _Error_Handler(__FILE__, __LINE__);
     }
-
+    HAL_NVIC_EnableIRQ(TIM2_IRQn);
+    if (HAL_TIM_Base_Start_IT(&htim2) != HAL_OK){
+        _Error_Handler(__FILE__, __LINE__);
+    }
 }
-
+/**
+ * @brief Get value from global us timer
+ * @return global us timer value
+ * @ingroup MAIN
+ */
+uint32_t us_tim_get_value(void){
+    uint32_t value = us_cnt_H + TIM2->CNT;
+    return value;
+}
+/**
+ * @brief Us delayy
+ * @param us - delau value
+ * @ingroup MAIN
+ */
+void us_tim_delay(uint32_t us){
+    uint32_t current;
+    uint8_t with_yield;
+    current = TIM2->CNT;
+    with_yield = 0;
+    if(us > TIME_YIELD_THRESHOLD){
+        with_yield =1;
+    }
+    while ((TIM2->CNT - current)<us){
+        if(with_yield){
+            osThreadYield();
+        }
+    }
+}
 
 /**
   * @brief  Period elapsed callback in non blocking mode

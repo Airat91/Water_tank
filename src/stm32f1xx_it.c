@@ -38,6 +38,7 @@
 #include "dcts.h"
 #include "pin_map.h"
 #include "control.h"
+#include "main.h"
 
 /* USER CODE BEGIN 0 */
 
@@ -225,6 +226,7 @@ void TIM3_IRQHandler(void){
 extern TIM_HandleTypeDef htim2;
 void TIM2_IRQHandler(void){
   HAL_TIM_IRQHandler(&htim2);
+  us_cnt_H += 0x10000;
 }
 
 /**

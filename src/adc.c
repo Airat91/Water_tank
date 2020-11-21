@@ -5,8 +5,7 @@
 #include "cmsis_os.h"
 #include "stm32f1xx_hal_gpio.h"
 #include "stm32f1xx_hal_rcc.h"
-#include "math.h"
-
+#include <math.h>
 /**
   * @defgroup ADC
   * @brief work with ADC channels
@@ -16,6 +15,19 @@ ADC_HandleTypeDef hadc1;
 
 #define ADC_BUF_SIZE 50
 #define ADC_PERIOD 100
+
+#define PWR_K   (float)2.187
+#define VREF_INT (float)1.2
+
+#define WTR_LEV_A1  (float)5.50069e-02
+#define WTR_LEV_A2  (float)-2.06272e+01
+
+#define WTR_TMP_A1  (float)-4.16259e-15
+#define WTR_TMP_A2  (float) 3.41573e-11
+#define WTR_TMP_A3  (float)-1.10305e-07
+#define WTR_TMP_A4  (float) 1.79162e-04
+#define WTR_TMP_A5  (float)-1.75460e-01
+#define WTR_TMP_A6  (float) 1.27727e+02
 
 /*========== FUNCTIONS ==========*/
 
@@ -140,8 +152,9 @@ void adc_task(void const * argument){
     uint16_t wtr_lev[ADC_BUF_SIZE];
     uint16_t wtr_tmp[ADC_BUF_SIZE];
     uint16_t vref[ADC_BUF_SIZE];
+    float pwr_f[ADC_BUF_SIZE];
     uint8_t tick = 0;
-    float vref_v = 0.0;
+    float temp = 0.0;
     adc_init();
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
@@ -149,24 +162,31 @@ void adc_task(void const * argument){
         uint32_t wtr_lev_sum = 0;
         uint32_t wtr_tmp_sum = 0;
         uint32_t vref_sum = 0;
+        float    pwr_f_sum = 0.0;
 
 
         pwr[tick] = (uint16_t)hadc1.Instance->JDR1;
         wtr_lev[tick] = (uint16_t)hadc1.Instance->JDR2;
         wtr_tmp[tick] = (uint16_t)hadc1.Instance->JDR3;
         vref[tick] = (uint16_t)hadc1.Instance->JDR4;
+        //pwr_f[tick] = (float)pwr[tick]/vref[tick];
 
         for(uint8_t i = 0; i < ADC_BUF_SIZE; i++){
             pwr_sum += pwr[i];
             wtr_lev_sum += wtr_lev[i];
             wtr_tmp_sum += wtr_tmp[i];
             vref_sum += vref[i];
+            //pwr_f_sum += pwr_f[i];
         }
 
-        vref_v = (float)vref_sum/ADC_BUF_SIZE;
-        dcts.dcts_pwr = (float)pwr_sum/ADC_BUF_SIZE;
-        dcts_meas[0].value = (float)wtr_lev_sum/ADC_BUF_SIZE;
-        dcts_meas[1].value = (float)wtr_tmp_sum/ADC_BUF_SIZE;
+        temp = (float)pwr_sum/ADC_BUF_SIZE;
+        dcts.dcts_pwr = temp/4096*3.3*PWR_K;
+
+        temp = (float)wtr_lev_sum/ADC_BUF_SIZE;
+        dcts_meas[0].value = temp*WTR_LEV_A1+WTR_LEV_A2;
+
+        temp = (float)wtr_tmp_sum/ADC_BUF_SIZE;
+        dcts_meas[1].value = WTR_TMP_A1*temp*temp*temp*temp*temp+WTR_TMP_A2*temp*temp*temp*temp+WTR_TMP_A3*temp*temp*temp+WTR_TMP_A4*temp*temp+WTR_TMP_A5*temp+WTR_TMP_A6;
 
         tick++;
         if(tick >= ADC_BUF_SIZE){

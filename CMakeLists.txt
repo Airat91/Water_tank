@@ -98,7 +98,7 @@ install(FILES  ${CMAKE_SOURCE_DIR}/cmake_arm/libfreertos_lib.a DESTINATION ${LIB
 install(FILES  ${CMAKE_SOURCE_DIR}/cmake_arm/libstm32f1_hal_lib.a DESTINATION ${LIB_INSTALL_DIR}/
         PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
 set(MAP_FILE ${PROJECT_SOURCE_DIR}/build/output.map)
-set_target_properties(${BUILD_TARGET} PROPERTIES LINK_FLAGS 
+set_target_properties(${BUILD_TARGET} PROPERTIES LINK_FLAGS
     "-mcpu=${MCU_ARCH}\
     -mthumb\
     -O0\
@@ -109,13 +109,13 @@ set_target_properties(${BUILD_TARGET} PROPERTIES LINK_FLAGS
 target_compile_options(${BUILD_TARGET} PUBLIC 
                              -mcpu=${MCU_ARCH}
                              -mthumb -mthumb-interwork
-                              -g -O0 
+                             -g -O0
                              -ffunction-sections -fdata-sections -fno-common -fmessage-length=0)
 
 set(compile_options -mcpu=${MCU_ARCH}
                     -mthumb
                     -mfloat-abi=${MCU_FLOAT_ABI} -std=gnu99 
-                    -ffunction-sections -fdata-sections -fno-common -fmessage-length=0 )
+                    -ffunction-sections -fdata-sections -fno-common -fmessage-length=0)
 
 target_compile_options(freertos_lib PUBLIC ${compile_options})
 target_compile_options(stm32f1_hal_lib PUBLIC ${compile_options})
