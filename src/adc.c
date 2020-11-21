@@ -1,6 +1,7 @@
 #include "adc.h"
 #include "pin_map.h"
 #include "dcts.h"
+#include "dcts_config.h"
 #include "FreeRTOS.h"
 #include "cmsis_os.h"
 #include "stm32f1xx_hal_gpio.h"
@@ -15,12 +16,18 @@ ADC_HandleTypeDef hadc1;
 
 #define ADC_BUF_SIZE 50
 #define ADC_PERIOD 100
+#define ADC_MAX 4095
+#define ADC_VREF 3.3f
 
 #define PWR_K   (float)2.187
 #define VREF_INT (float)1.2
 
 #define WTR_LEV_A1  (float)5.50069e-02
 #define WTR_LEV_A2  (float)-2.06272e+01
+static const float wtr_lev_coef[2] = {
+    5.50069e-02,
+    -2.06272e+01,
+};
 
 #define WTR_TMP_A1  (float)-4.16259e-15
 #define WTR_TMP_A2  (float) 3.41573e-11
@@ -28,6 +35,14 @@ ADC_HandleTypeDef hadc1;
 #define WTR_TMP_A4  (float) 1.79162e-04
 #define WTR_TMP_A5  (float)-1.75460e-01
 #define WTR_TMP_A6  (float) 1.27727e+02
+static const float wtr_tmpr_coef[6] = {
+    1.27727e+02,
+    -1.75460e-01,
+    1.79162e-04,
+    -1.10305e-07,
+    3.41573e-11,
+    -4.16259e-15,
+};
 
 /*========== FUNCTIONS ==========*/
 
@@ -180,13 +195,24 @@ void adc_task(void const * argument){
         }
 
         temp = (float)pwr_sum/ADC_BUF_SIZE;
-        dcts.dcts_pwr = temp/4096*3.3*PWR_K;
+        dcts.dcts_pwr = temp/ADC_MAX*ADC_VREF*PWR_K;
 
-        temp = (float)wtr_lev_sum/ADC_BUF_SIZE;
-        dcts_meas[0].value = temp*WTR_LEV_A1+WTR_LEV_A2;
+        dcts_meas[WTR_LVL_ADC].value = (float)wtr_lev_sum/ADC_BUF_SIZE;
+        dcts_meas[WTR_LVL_V].value = dcts_meas[WTR_LVL_ADC].value*ADC_VREF/ADC_MAX;
+        dcts_meas[WTR_LVL].value = dcts_meas[WTR_LVL_ADC].value*WTR_LEV_A1+WTR_LEV_A2;
 
-        temp = (float)wtr_tmp_sum/ADC_BUF_SIZE;
-        dcts_meas[1].value = WTR_TMP_A1*temp*temp*temp*temp*temp+WTR_TMP_A2*temp*temp*temp*temp+WTR_TMP_A3*temp*temp*temp+WTR_TMP_A4*temp*temp+WTR_TMP_A5*temp+WTR_TMP_A6;
+        dcts_meas[WTR_TMPR_ADC].value = (float)wtr_tmp_sum/ADC_BUF_SIZE;
+        dcts_meas[WTR_TMPR_V].value = dcts_meas[WTR_TMPR_ADC].value*ADC_VREF/ADC_MAX;
+        temp = wtr_tmpr_coef[0];
+        float temp_pow = 1.0;
+        for (uint8_t i = 1; i < 6; i++){
+            temp_pow *= dcts_meas[WTR_TMPR_ADC].value;
+            temp += temp_pow * wtr_tmpr_coef[i];
+        }
+        dcts_meas[WTR_TMPR].value = temp;
+
+        dcts_meas[VREF_ADC].value = (float)vref_sum/ADC_BUF_SIZE;
+        dcts_meas[VREF_V].value = dcts_meas[VREF_V].value*ADC_VREF/ADC_MAX;
 
         tick++;
         if(tick >= ADC_BUF_SIZE){

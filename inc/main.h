@@ -100,8 +100,11 @@ extern uint32_t us_cnt_H;
 #endif
 
 void display_task(void const * argument);
+void am2302_task(void const * argument);
 uint32_t us_tim_get_value(void);
 void us_tim_delay(uint32_t us);
+
+
 
 #endif /* __MAIN_H__ */
 

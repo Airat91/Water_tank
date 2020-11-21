@@ -53,6 +53,7 @@
 #include "cmsis_os.h"
 #include "stm32f1xx_hal_gpio.h"
 #include "dcts.h"
+#include "dcts_config.h"
 #include "pin_map.h"
 #include "buttons.h"
 #include "LCD.h"
@@ -84,6 +85,7 @@ osThreadId displayTaskHandle;
 osThreadId menuTaskHandle;
 osThreadId controlTaskHandle;
 osThreadId adcTaskHandle;
+osThreadId am2302TaskHandle;
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -140,6 +142,9 @@ int main(void){
 
     osThreadDef(buttons_task, buttons_task, osPriorityNormal, 0, 128);
     buttonsTaskHandle = osThreadCreate(osThread(buttons_task), NULL);
+
+    osThreadDef(am2302_task, am2302_task, osPriorityNormal, 0, 128);
+    am2302TaskHandle = osThreadCreate(osThread(am2302_task), NULL);
 
     //osThreadDef(menu_task, menu_task, osPriorityNormal, 0, 364);
     //menuTaskHandle = osThreadCreate(osThread(menu_task), NULL);
@@ -325,7 +330,6 @@ void display_task(void const * argument){
     uint32_t current = 0;
     const float vmax = 114.0;
     uint8_t high_lev = 0;
-    am2302_data_t am2302_3 = {0};
     uint8_t tick = 0;
     float tmpr = 0.0;
     float hum = 0.0;
@@ -338,48 +342,63 @@ void display_task(void const * argument){
 
         // print values
         LCD_set_xy(3,45);
-        sprintf(string, "%3.1f%s", (double)dcts_meas[1].value, dcts_meas[1].unit);
+        sprintf(string, "%3.1f%s", (double)dcts_meas[WTR_TMPR].value, dcts_meas[WTR_TMPR].unit);
         LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
         LCD_set_xy(3,5);
-        sprintf(string, "%3.1f%s", (double)dcts_meas[0].value, dcts_meas[0].unit);
+        sprintf(string, "%3.1f%s", (double)dcts_meas[WTR_LVL].value, dcts_meas[WTR_LVL].unit);
         LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
 
         // fill water level
-        high_lev = (uint8_t)(dcts_meas[0].value/vmax*62);
+        high_lev = (uint8_t)(dcts_meas[WTR_LVL].value/vmax*62);
         if(high_lev > 61){
             high_lev = 61;
         }
         LCD_invert_area(1,1,48,high_lev+1);
 
-        if(tick == 2){
-            am2302_3 = am2302_get(2);
-            tick = 0;
-
-            tmpr = (float)am2302_3.tmpr/10;
-            hum = (float)am2302_3.hum/10;
-        }
-
-        LCD_set_xy(52,45);
-        sprintf(string, "T %3.1f", tmpr);
+        LCD_set_xy(52,50);
+        sprintf(string, "Predbannik");
         LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-        LCD_set_xy(52,35);
-        sprintf(string, "H %2.1f", hum);
+        LCD_set_xy(52,40);
+        sprintf(string, "%3.1f%s/%2.0f%s", dcts_meas[PREDBANNIK_TMPR].value, dcts_meas[PREDBANNIK_TMPR].unit, dcts_meas[PREDBANNIK_HUM].value, dcts_meas[PREDBANNIK_HUM].unit);
         LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
         tick++;
-
-        // check us timer
-        /*last = us_tim_get_value();
-        osDelay(20);
-        current = us_tim_get_value();
-        period = current - last;
-        LCD_set_xy(52,45);
-        sprintf(string, "%d", (int)period);
-        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);*/
 
         LCD_update();
         osDelayUntil(&last_wake_time, 1000);
     }
 }
+
+void am2302_task (void const * argument){
+    (void)argument;
+    uint32_t last_wake_time = osKernelSysTick();
+    am2302_init();
+    am2302_data_t am2302 = {0};
+    while(1){
+        am2302 = am2302_get(2);
+        if(am2302.error == 1){
+            dcts_meas[PREDBANNIK_HUM].valid = FALSE;
+            dcts_meas[PREDBANNIK_TMPR].valid = FALSE;
+        }else{
+            dcts_meas[PREDBANNIK_HUM].value = (float)am2302.hum/10;
+            dcts_meas[PREDBANNIK_HUM].valid = TRUE;
+            dcts_meas[PREDBANNIK_TMPR].value = (float)am2302.tmpr/10;
+            dcts_meas[PREDBANNIK_TMPR].valid = TRUE;
+        }
+
+        am2302 = am2302_get(1);
+        if(am2302.error == 1){
+            dcts_meas[MOYKA_HUM].valid = FALSE;
+            dcts_meas[MOYKA_TMPR].valid = FALSE;
+        }else{
+            dcts_meas[MOYKA_HUM].value = (float)am2302.hum/10;
+            dcts_meas[MOYKA_HUM].valid = TRUE;
+            dcts_meas[MOYKA_TMPR].value = (float)am2302.tmpr/10;
+            dcts_meas[MOYKA_TMPR].valid = TRUE;
+        }
+        osDelayUntil(&last_wake_time, 3000);
+    }
+}
+
 /**
  * @brief Init us timer
  * @ingroup MAIN
