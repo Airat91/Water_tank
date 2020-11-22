@@ -170,13 +170,17 @@ am2302_data_t am2302_get (uint8_t channel) {
     }
     taskEXIT_CRITICAL();
     uint8_t paritet = 0;
-    for(i = 0; i < 4; i++){
-        paritet += read_data[i];
-    }
-    if(paritet == read_data[4]){
-        result.hum = read_data[0]*256 + read_data[1];
-        result.tmpr = read_data[2]*256 + read_data[3];
-        result.paritet = read_data[4];
+    if(read_data[4] != 0){
+        for(i = 0; i < 4; i++){
+            paritet += read_data[i];
+        }
+        if(paritet == read_data[4]){
+            result.hum = read_data[0]*256 + read_data[1];
+            result.tmpr = read_data[2]*256 + read_data[3];
+            result.paritet = read_data[4];
+        }else{
+            result.error = 1;
+        }
     }else{
         result.error = 1;
     }

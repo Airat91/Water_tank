@@ -1,4 +1,4 @@
-п»ї
+
 /**
   ******************************************************************************
   * @file           : main.c
@@ -324,54 +324,83 @@ void default_task(void const * argument){
     }
 }
 
+/**
+ * @brief display_task
+ * @param argument
+ */
+#define display_task_period 1000
 void display_task(void const * argument){
     (void)argument;
     char string[100];
     uint32_t last_wake_time = osKernelSysTick();
     adc_init();
-    uint32_t last = 0;
-    uint32_t period = 0;
-    uint32_t current = 0;
     const float vmax = 114.0;
     uint8_t high_lev = 0;
-    uint8_t tick = 0;
-    float tmpr = 0.0;
-    float hum = 0.0;
     while(1){
         LCD_clr();
 
         // print water tank
-        LCD_fill_area(0,0,49,63,LCD_COLOR_BLACK);
-        LCD_fill_area(1,1,48,62,LCD_COLOR_WHITE);
+        LCD_fill_area(0,0,50,63,LCD_COLOR_BLACK);
+        LCD_fill_area(1,1,49,62,LCD_COLOR_WHITE);
 
         // print values
         LCD_set_xy(3,45);
-        sprintf(string, "%3.1f%s", (double)dcts_meas[WTR_TMPR].value, dcts_meas[WTR_TMPR].unit);
+        sprintf(string, "%3.1f%s", dcts_meas[WTR_TMPR].value, dcts_meas[WTR_TMPR].unit);
         LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
         LCD_set_xy(3,5);
-        sprintf(string, "%3.1f%s", (double)dcts_meas[WTR_LVL].value, dcts_meas[WTR_LVL].unit);
+        sprintf(string, "%3.1f%s", dcts_meas[WTR_LVL].value, dcts_meas[WTR_LVL].unit);
         LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+        LCD_set_xy(1,30);
+        sprintf(string, "Горячая");
+        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+        LCD_set_xy(12,20);
+        sprintf(string, "вода");
+        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
 
         // fill water level
         high_lev = (uint8_t)(dcts_meas[WTR_LVL].value/vmax*62);
         if(high_lev > 61){
             high_lev = 61;
         }
-        LCD_invert_area(1,1,48,high_lev+1);
+        LCD_invert_area(1,1,49,high_lev+1);
 
-        LCD_set_xy(52,50);
-        sprintf(string, "Predbannik");
+        LCD_set_xy(55,52);
+        sprintf(string, "Предбанник");
         LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-        LCD_set_xy(52,40);
-        sprintf(string, "%3.1f%s/%2.0f%s", dcts_meas[PREDBANNIK_TMPR].value, dcts_meas[PREDBANNIK_TMPR].unit, dcts_meas[PREDBANNIK_HUM].value, dcts_meas[PREDBANNIK_HUM].unit);
+        LCD_invert_area(52,53,127,63);
+        LCD_set_xy(52,41);
+        if(dcts_meas[PREDBANNIK_HUM].valid){
+            sprintf(string, "%.1f%s/%.0f%s", dcts_meas[PREDBANNIK_TMPR].value, dcts_meas[PREDBANNIK_TMPR].unit, dcts_meas[PREDBANNIK_HUM].value, dcts_meas[PREDBANNIK_HUM].unit);
+        }else{
+            sprintf(string, "Нет соед-я");
+        }
         LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-        tick++;
+
+        LCD_set_xy(65,18);
+        sprintf(string, "Моечная");
+        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+        LCD_invert_area(52,19,127,29);
+        LCD_set_xy(52,7);
+        if(dcts_meas[MOYKA_HUM].valid){
+            sprintf(string, "%.1f%s/%.0f%s", dcts_meas[MOYKA_TMPR].value, dcts_meas[MOYKA_TMPR].unit, dcts_meas[MOYKA_HUM].value, dcts_meas[MOYKA_HUM].unit);
+        }else{
+            sprintf(string, "Нет соед-я");
+        }
+        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
 
         LCD_update();
-        osDelayUntil(&last_wake_time, 1000);
+        osDelayUntil(&last_wake_time, display_task_period);
     }
 }
 
+/**
+ * @brief am2302_task
+ * @param argument
+ */
+
+#define am2302_task_period 3000
 void am2302_task (void const * argument){
     (void)argument;
     uint32_t last_wake_time = osKernelSysTick();
@@ -399,19 +428,25 @@ void am2302_task (void const * argument){
             dcts_meas[MOYKA_TMPR].value = (float)am2302.tmpr/10;
             dcts_meas[MOYKA_TMPR].valid = TRUE;
         }
-        osDelayUntil(&last_wake_time, 3000);
+        osDelayUntil(&last_wake_time, am2302_task_period);
     }
 }
+
+/**
+ * @brief LCD_backlight_task
+ * @param argument
+ */
+#define LCD_backlight_task_period 10
 
 void LCD_backlight_task (void const * argument){
     (void)argument;
     uint32_t last_wake_time = osKernelSysTick();
     //uint8_t tick = 0;
     while(1){
-        if((pressed_time[BUTTON_BREAK].pressed > 0)&&(pressed_time[BUTTON_BREAK].pressed < 10)){
+        if((pressed_time[BUTTON_BREAK].pressed > 0)&&(pressed_time[BUTTON_BREAK].pressed < LCD_backlight_task_period)){
             LCD_backlight_toggle();
         }
-        osDelayUntil(&last_wake_time, 10);
+        osDelayUntil(&last_wake_time, LCD_backlight_task_period);
     }
 }
 
