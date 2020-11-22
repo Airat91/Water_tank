@@ -101,6 +101,8 @@ extern uint32_t us_cnt_H;
 
 void display_task(void const * argument);
 void am2302_task(void const * argument);
+void default_task(void const * argument);
+void LCD_backlight_task(void const * argument);
 uint32_t us_tim_get_value(void);
 void us_tim_delay(uint32_t us);
 

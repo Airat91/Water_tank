@@ -18,6 +18,7 @@ SPI_HandleTypeDef lcd_spi = {0};
 LCD_t LCD = {
     .x = 0,
     .y = 0,
+    .backlight_lvl = 2,
     .backlight = 0,
 };
 uint8_t LCD_buf[1024] = {0};

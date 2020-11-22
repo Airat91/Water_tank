@@ -39,6 +39,7 @@ typedef struct {
     uint8_t x;
     uint8_t y;
     uint8_t backlight;
+    uint8_t backlight_lvl;
     uint8_t buf[LCD_BUF_ARRAY_LEN];
 }LCD_t;
 

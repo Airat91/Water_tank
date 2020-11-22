@@ -86,6 +86,7 @@ osThreadId menuTaskHandle;
 osThreadId controlTaskHandle;
 osThreadId adcTaskHandle;
 osThreadId am2302TaskHandle;
+osThreadId LCD_backlightTaskHandle;
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -96,7 +97,7 @@ static void MX_RTC_Init(void);
 //static void MX_ADC1_Init(void);
 //static void MX_USART1_UART_Init(void);
 static void tim2_init(void);
-void default_task(void const * argument);
+
 
 static void save_to_bkp(u8 bkp_num, u8 var);
 static void save_float_to_bkp(u8 bkp_num, float var);
@@ -145,6 +146,9 @@ int main(void){
 
     osThreadDef(am2302_task, am2302_task, osPriorityNormal, 0, 128);
     am2302TaskHandle = osThreadCreate(osThread(am2302_task), NULL);
+
+    osThreadDef(LCD_backlight_task, LCD_backlight_task, osPriorityNormal, 0, 128);
+    LCD_backlightTaskHandle = osThreadCreate(osThread(LCD_backlight_task), NULL);
 
     //osThreadDef(menu_task, menu_task, osPriorityNormal, 0, 364);
     //menuTaskHandle = osThreadCreate(osThread(menu_task), NULL);
@@ -396,6 +400,18 @@ void am2302_task (void const * argument){
             dcts_meas[MOYKA_TMPR].valid = TRUE;
         }
         osDelayUntil(&last_wake_time, 3000);
+    }
+}
+
+void LCD_backlight_task (void const * argument){
+    (void)argument;
+    uint32_t last_wake_time = osKernelSysTick();
+    //uint8_t tick = 0;
+    while(1){
+        if((pressed_time[BUTTON_BREAK].pressed > 0)&&(pressed_time[BUTTON_BREAK].pressed < 10)){
+            LCD_backlight_toggle();
+        }
+        osDelayUntil(&last_wake_time, 10);
     }
 }
 
