@@ -7,6 +7,7 @@
 #include "stm32f1xx_hal_gpio.h"
 #include "stm32f1xx_hal_rcc.h"
 #include <math.h>
+#include "main.h"
 /**
   * @defgroup ADC
   * @brief work with ADC channels
@@ -199,20 +200,14 @@ void adc_task(void const * argument){
 
         dcts_meas[WTR_LVL_ADC].value = (float)wtr_lev_sum/ADC_BUF_SIZE;
         dcts_meas[WTR_LVL_V].value = dcts_meas[WTR_LVL_ADC].value*ADC_VREF/ADC_MAX;
-        dcts_meas[WTR_LVL].value = dcts_meas[WTR_LVL_ADC].value*WTR_LEV_A1+WTR_LEV_A2;
+        dcts_meas[WTR_LVL].value =adc_lvl_calc(dcts_meas[WTR_LVL_ADC].value);
 
         dcts_meas[WTR_TMPR_ADC].value = (float)wtr_tmp_sum/ADC_BUF_SIZE;
         dcts_meas[WTR_TMPR_V].value = dcts_meas[WTR_TMPR_ADC].value*ADC_VREF/ADC_MAX;
-        temp = wtr_tmpr_coef[0];
-        float temp_pow = 1.0;
-        for (uint8_t i = 1; i < 6; i++){
-            temp_pow *= dcts_meas[WTR_TMPR_ADC].value;
-            temp += temp_pow * wtr_tmpr_coef[i];
-        }
-        dcts_meas[WTR_TMPR].value = temp;
+        dcts_meas[WTR_TMPR].value = adc_tmpr_calc(dcts_meas[WTR_TMPR_ADC].value);
 
         dcts_meas[VREF_ADC].value = (float)vref_sum/ADC_BUF_SIZE;
-        dcts_meas[VREF_V].value = dcts_meas[VREF_V].value*ADC_VREF/ADC_MAX;
+        dcts_meas[VREF_V].value = dcts_meas[VREF_ADC].value*ADC_VREF/ADC_MAX;
 
         tick++;
         if(tick >= ADC_BUF_SIZE){
@@ -220,4 +215,48 @@ void adc_task(void const * argument){
         }
         osDelayUntil(&last_wake_time, ADC_PERIOD);
     }
+}
+
+float adc_tmpr_calc(float adc){
+    float tmpr = 0.0f;
+    float a = 1.0f;
+    float b = 0.0f;
+    for(uint8_t i = 0; i < 10; i++){
+        if((adc <= tmpr_calib_table[i])&&(adc > tmpr_calib_table[i+1])){
+            a = 10.0f/(tmpr_calib_table[i+1]-tmpr_calib_table[i]);
+            b = 10.0f*i - a*tmpr_calib_table[i];
+        }
+    }
+    if(adc > tmpr_calib_table[0]){
+        a = 10.0f/(tmpr_calib_table[1]-tmpr_calib_table[0]);
+        b = 0.0f - a*tmpr_calib_table[0];
+    }
+    if(adc <= tmpr_calib_table[10]){
+        a = 10.0f/(tmpr_calib_table[11]-tmpr_calib_table[10]);
+        b = 100.0f - a*tmpr_calib_table[10];
+    }
+    tmpr = a*adc + b;
+    return tmpr;
+}
+
+float adc_lvl_calc(float adc){
+    float tmpr = 0.0f;
+    float a = 1.0f;
+    float b = 0.0f;
+    for(uint8_t i = 0; i < 5; i++){
+        if((adc >= lvl_calib_table[i])&&(adc < lvl_calib_table[i+1])){
+            a = 20.0f/(lvl_calib_table[i+1]-lvl_calib_table[i]);
+            b = 20.0f*i - a*lvl_calib_table[i];
+        }
+    }
+    if(adc < lvl_calib_table[0]){
+        a = 20.0f/(lvl_calib_table[1]-lvl_calib_table[0]);
+        b = 0.0f - a*lvl_calib_table[0];
+    }
+    if(adc >= lvl_calib_table[5]){
+        a = 20.0f/(lvl_calib_table[6]-lvl_calib_table[5]);
+        b = 100.0f - a*lvl_calib_table[5];
+    }
+    tmpr = a*adc + b;
+    return tmpr;
 }

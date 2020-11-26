@@ -103,6 +103,8 @@ static void main_menu_print(void);
 static void error_page_print(menu_page_t page);
 static void save_page_print (void);
 static void info_print (void);
+static void meas_channels_print(void);
+static void calib_print(uint8_t start_channel);
 static void save_to_flash(void);
 static void save_to_bkp(u8 bkp_num, u8 var);
 static void save_float_to_bkp(u8 bkp_num, float var);
@@ -112,7 +114,30 @@ static float read_float_bkp(u8 bkp_num, u8 sign);
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 uint32_t us_cnt_H = 0;
-uint8_t navigation_enable = TRUE;
+navigation_t navigation_style = MENU_NAVIGATION;
+edit_val_t edit_val = {0};
+
+uint16_t lvl_calib_table[6] = {
+    375,
+    738,
+    1102,
+    1466,
+    1829,
+    2193,
+};
+uint16_t tmpr_calib_table[11] = {
+    3137,
+    2727,
+    2275,
+    1826,
+    1421,
+    1082,
+    813,
+    607,
+    454,
+    341,
+    258,
+};
 
 
 /**
@@ -126,9 +151,6 @@ int main(void){
     SystemClock_Config();
     tim2_init();
     dcts_init();
-    LCD_init();
-    menu_init();
-    adc_init();
     /*
     MX_RTC_Init();
     MX_ADC1_Init();
@@ -339,6 +361,8 @@ void default_task(void const * argument){
 #define display_task_period 500
 void display_task(void const * argument){
     (void)argument;
+    menu_init();
+    LCD_init();
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
         LCD_clr();
@@ -355,6 +379,42 @@ void display_task(void const * argument){
             break;
         case INFO:
             info_print();
+            break;
+        case MEAS_CH_0:
+        case MEAS_CH_1:
+        case MEAS_CH_2:
+        case MEAS_CH_3:
+        case MEAS_CH_4:
+        case MEAS_CH_5:
+        case MEAS_CH_6:
+        case MEAS_CH_7:
+        case MEAS_CH_8:
+        case MEAS_CH_9:
+        case MEAS_CH_10:
+        case MEAS_CH_11:
+        case MEAS_CH_12:
+            meas_channels_print();
+            break;
+        case LVL_0:
+        case LVL_20:
+        case LVL_40:
+        case LVL_60:
+        case LVL_80:
+        case LVL_100:
+            calib_print(LVL_0);
+            break;
+        case ADC_0:
+        case ADC_10:
+        case ADC_20:
+        case ADC_30:
+        case ADC_40:
+        case ADC_50:
+        case ADC_60:
+        case ADC_70:
+        case ADC_80:
+        case ADC_90:
+        case ADC_100:
+            calib_print(ADC_0);
             break;
         case SAVE_CHANGES:
             save_page_print();
@@ -373,7 +433,8 @@ void navigation_task (void const * argument){
     (void)argument;
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
-        if(navigation_enable){
+        switch (navigation_style){
+        case MENU_NAVIGATION:
             if((pressed_time[BUTTON_UP].pressed > 0)&&(pressed_time[BUTTON_UP].pressed < navigation_task_period)){
                 menuChange(selectedMenuItem->Previous);
             }
@@ -389,6 +450,31 @@ void navigation_task (void const * argument){
             if((pressed_time[BUTTON_OK].pressed > 0)&&(pressed_time[BUTTON_OK].pressed < navigation_task_period)){
                 menuChange(selectedMenuItem->Child);
             }
+            break;
+        case DIGIT_EDIT:
+            if((pressed_time[BUTTON_UP].pressed > 0)&&(pressed_time[BUTTON_UP].pressed < navigation_task_period)){
+                *edit_val.p_val += uint16_pow(10, (uint16_t)edit_val.digit);
+            }
+            if((pressed_time[BUTTON_DOWN].pressed > 0)&&(pressed_time[BUTTON_DOWN].pressed < navigation_task_period)){
+                *edit_val.p_val -= uint16_pow(10, (uint16_t)edit_val.digit);
+            }
+            if((pressed_time[BUTTON_LEFT].pressed > 0)&&(pressed_time[BUTTON_LEFT].pressed < navigation_task_period)){
+                if(edit_val.digit < edit_val.digit_max){
+                    edit_val.digit++;
+                }
+            }
+            if((pressed_time[BUTTON_RIGHT].pressed > 0)&&(pressed_time[BUTTON_RIGHT].pressed < navigation_task_period)){
+                if(edit_val.digit > 0){
+                    edit_val.digit--;
+                }
+            }
+            if((pressed_time[BUTTON_OK].pressed > navigation_task_period)){
+                while(pressed_time[BUTTON_OK].last_state == BUTTON_PRESSED){
+                }
+                navigation_style = MENU_NAVIGATION;
+            }
+
+            break;
         }
         if((pressed_time[BUTTON_BREAK].pressed > 0)&&(pressed_time[BUTTON_BREAK].pressed < navigation_task_period)){
             LCD_backlight_toggle();
@@ -540,6 +626,102 @@ static void info_print (void){
     LCD_invert_area(0,0,42,11);
 }
 
+static void meas_channels_print(void){
+    char string[100];
+    uint8_t channel = 0;
+    menuItem* temp = selectedMenuItem->Parent;
+    sprintf(string, temp->Text);
+    LCD_set_xy(align_text_center(string, Font_7x10),52);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(0,53,127,63);
+
+    temp = selectedMenuItem;
+    for(uint8_t i = 0; i < 2; i++){
+        channel = (uint8_t)temp->Page - MEAS_CH_0;
+        sprintf(string, "%s:",dcts_meas[channel].name);
+        LCD_set_xy(2,41-21*i);
+        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+        sprintf(string, "%.2f(%s) ", dcts_meas[channel].value, dcts_meas[channel].unit);
+        LCD_set_xy(align_text_right(string,Font_7x10),31-21*i);
+        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+        temp = temp->Next;
+    }
+
+    sprintf(string, "<назад");
+    LCD_set_xy(0,0);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(0,0,42,11);
+
+}
+
+static void calib_print (uint8_t start_channel){
+    char string[100];
+    menuItem* temp = selectedMenuItem->Parent;
+    uint16_t* calib_table;
+    sprintf(string, temp->Text);
+    LCD_set_xy(align_text_center(string, Font_7x10),52);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(0,53,127,63);
+    if(temp->Page == LVL_CALIB){
+        calib_table = lvl_calib_table;
+    }else if(temp->Page == TMPR_CALIB){
+        calib_table = tmpr_calib_table;
+    }
+
+    temp = selectedMenuItem->Previous;
+    sprintf(string, temp->Text);
+    LCD_set_xy(1,39);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    sprintf(string, "%d",calib_table[(uint8_t)temp->Page-start_channel]);
+    LCD_set_xy(align_text_right(string, Font_7x10)-1,39);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
+    sprintf(string, selectedMenuItem->Text);
+    LCD_set_xy(1,26);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    sprintf(string, "%d",calib_table[(uint8_t)selectedMenuItem->Page-start_channel]);
+    LCD_set_xy(align_text_right(string, Font_7x10)-1,26);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(0,26,127,39);
+    LCD_invert_area(1,27,126,38);
+
+    temp = selectedMenuItem->Next;
+    sprintf(string, temp->Text);
+    LCD_set_xy(1,14);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    sprintf(string, "%d",calib_table[(uint8_t)temp->Page-start_channel]);
+    LCD_set_xy(align_text_right(string, Font_7x10)-1,14);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
+    switch (navigation_style) {
+    case MENU_NAVIGATION:
+        sprintf(string, "<назад   изменить>");
+        LCD_set_xy(0,0);
+        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+        LCD_invert_area(0,0,42,11);
+        LCD_invert_area(62,0,127,11);
+
+        if(pressed_time[BUTTON_RIGHT].pressed > navigation_task_period){
+            while(pressed_time[BUTTON_RIGHT].last_state == BUTTON_PRESSED){
+            }
+            navigation_style = DIGIT_EDIT;
+            edit_val.digit_max = 3;
+            edit_val.digit = 0;
+            edit_val.p_val = &calib_table[(uint8_t)selectedMenuItem->Page-start_channel];
+        }
+        break;
+    case DIGIT_EDIT:
+        sprintf(string, "*ввод");
+        LCD_set_xy(align_text_center(string, Font_7x10),0);
+        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+        LCD_invert_area(46,0,82,11);
+
+        LCD_invert_area(127-(edit_val.digit+1)*Font_7x10.FontWidth,27,126-edit_val.digit*Font_7x10.FontWidth,38);
+        break;
+    }
+
+}
+
 static void save_page_print (void){
     char string[100];
 
@@ -587,11 +769,27 @@ void am2302_task (void const * argument){
             dcts_meas[MOYKA_TMPR].value = (float)am2302.tmpr/10;
             dcts_meas[MOYKA_TMPR].valid = TRUE;
         }
+
+        am2302 = am2302_get(0);
+        if(am2302.error == 1){
+            dcts_meas[PARILKA_TMPR].valid = FALSE;
+        }else{
+            dcts_meas[PARILKA_TMPR].value = (float)am2302.tmpr/10;
+            dcts_meas[PARILKA_TMPR].valid = TRUE;
+        }
+
         osDelayUntil(&last_wake_time, am2302_task_period);
     }
 }
 
-
+uint16_t uint16_pow(uint16_t x, uint16_t pow){
+    uint16_t result = 1;
+    while(pow){
+        result *= x;
+        pow--;
+    }
+    return result;
+}
 
 /**
  * @brief Init us timer

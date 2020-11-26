@@ -24,5 +24,7 @@ void adc_deinit (void);
 void adc_gpio_init (void);
 void adc_gpio_deinit (void);
 void adc_task(void const * argument);
+float adc_tmpr_calc(float adc);
+float adc_lvl_calc(float adc);
 
 #endif // ADC_H

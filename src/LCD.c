@@ -468,3 +468,14 @@ uint8_t align_text_center(char* string, FontDef_t font){
     uint8_t len = (uint8_t)strlen(string);
     return (uint8_t)(128-len*font.FontWidth)/2;
 }
+
+/**
+ * @brief Calculate start position to put string on right of display
+ * @param string - pionter to string buffer
+ * @param font - pointer to structure with used font
+ * @return x position for LCD_print()
+ */
+uint8_t align_text_right(char* string, FontDef_t font){
+    uint8_t len = (uint8_t)strlen(string);
+    return (uint8_t)(128-len*font.FontWidth);
+}

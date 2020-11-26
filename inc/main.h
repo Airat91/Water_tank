@@ -94,11 +94,24 @@
 void _Error_Handler(char *, int);
 extern uint32_t us_cnt_H;
 extern uint8_t navigation_enable;
+extern uint16_t lvl_calib_table[];
+extern uint16_t tmpr_calib_table[];
 
 #define Error_Handler() _Error_Handler(__FILE__, __LINE__)
 #ifdef __cplusplus
 }
 #endif
+
+ typedef enum{
+     MENU_NAVIGATION,
+     DIGIT_EDIT,
+ }navigation_t;
+
+ typedef struct{
+     uint16_t * p_val;
+     uint8_t digit;
+     uint8_t digit_max;
+ }edit_val_t;
 
 void display_task(void const * argument);
 void am2302_task(void const * argument);
@@ -106,7 +119,7 @@ void default_task(void const * argument);
 void navigation_task(void const * argument);
 uint32_t us_tim_get_value(void);
 void us_tim_delay(uint32_t us);
-
+uint16_t uint16_pow(uint16_t x, uint16_t pow);
 
 
 #endif /* __MAIN_H__ */

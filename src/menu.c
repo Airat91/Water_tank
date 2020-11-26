@@ -28,7 +28,6 @@ static volatile uint8_t menuStackTop;
 
 //                  NAME           NEXT            PREV            PARENT          CHILD        GHILD_NUM   PAGE                    TEXT
 MAKE_MENU       (main_page,     NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     common_info,    4,          MAIN_PAGE,          "Главное меню");
-//MAKE_MENU       (main_menu,     main_page,      main_page,      NULL_ENTRY,     common_info,    0,          MAIN_MENU,          "Главное меню");
   MAKE_MENU     (common_info,   meas_channels,  tmpr_calib,     main_page,      info,           0,          COMMON_INFO,        "Об устройстве");
     MAKE_MENU   (info,          NULL_ENTRY,     NULL_ENTRY,     common_info,    NULL_ENTRY,     0,          INFO,               "Об устройстве");
   MAKE_MENU     (meas_channels, lvl_calib,      common_info,    main_page,      meas_ch_0,      13,         MEAS_CHANNELS,      "Изм. каналы");
@@ -45,9 +44,13 @@ MAKE_MENU       (main_page,     NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     
     MAKE_MENU   (meas_ch_10,    meas_ch_11,     meas_ch_9,      meas_channels,  NULL_ENTRY,     0,          MEAS_CH_10,         0x00);
     MAKE_MENU   (meas_ch_11,    meas_ch_12,     meas_ch_10,     meas_channels,  NULL_ENTRY,     0,          MEAS_CH_11,         0x00);
     MAKE_MENU   (meas_ch_12,    meas_ch_0,      meas_ch_11,     meas_channels,  NULL_ENTRY,     0,          MEAS_CH_12,         0x00);
-  MAKE_MENU     (lvl_calib,     tmpr_calib,     meas_channels,  main_page,      calib_a,        2,          LVL_CALIB,          "Калиб. уровня");
-    MAKE_MENU   (calib_a,       calib_b,        calib_b,        lvl_calib,      NULL_ENTRY,     0,          LVL_CALIB_A,        "Коэф. А");
-    MAKE_MENU   (calib_b,       calib_a,        calib_a,        lvl_calib,      NULL_ENTRY,     0,          LVL_CALIB_B,        "Коэф. В");
+  MAKE_MENU     (lvl_calib,     tmpr_calib,     meas_channels,  main_page,      lvl_0,          6,          LVL_CALIB,          "Калиб. уровня");
+    MAKE_MENU   (lvl_0,         lvl_20,         lvl_100,        lvl_calib,      NULL_ENTRY,     0,          LVL_0,              "АЦП при 0л");
+    MAKE_MENU   (lvl_20,        lvl_40,         lvl_0,          lvl_calib,      NULL_ENTRY,     0,          LVL_20,             "АЦП при 20л");
+    MAKE_MENU   (lvl_40,        lvl_60,         lvl_20,         lvl_calib,      NULL_ENTRY,     0,          LVL_40,             "АЦП при 40л");
+    MAKE_MENU   (lvl_60,        lvl_80,         lvl_40,         lvl_calib,      NULL_ENTRY,     0,          LVL_60,             "АЦП при 60л");
+    MAKE_MENU   (lvl_80,        lvl_100,        lvl_60,         lvl_calib,      NULL_ENTRY,     0,          LVL_80,             "АЦП при 80л");
+    MAKE_MENU   (lvl_100,       lvl_0,          lvl_80,         lvl_calib,      NULL_ENTRY,     0,          LVL_100,            "АЦП при 100л");
   MAKE_MENU     (tmpr_calib,    common_info,    lvl_calib,      main_page,      adc_0,          11,         TMPR_CALIB,         "Калиб. темпер.");
     MAKE_MENU   (adc_0,         adc_10,         adc_100,        tmpr_calib,     NULL_ENTRY,     0,          ADC_0,              "АЦП при 0°C");
     MAKE_MENU   (adc_10,        adc_20,         adc_0,          tmpr_calib,     NULL_ENTRY,     0,          ADC_10,             "АЦП при 10°C");
@@ -60,6 +63,7 @@ MAKE_MENU       (main_page,     NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     
     MAKE_MENU   (adc_80,        adc_90,         adc_70,         tmpr_calib,     NULL_ENTRY,     0,          ADC_80,             "АЦП при 80°C");
     MAKE_MENU   (adc_90,        adc_100,        adc_80,         tmpr_calib,     NULL_ENTRY,     0,          ADC_90,             "АЦП при 90°C");
     MAKE_MENU   (adc_100,       adc_0,          adc_90,         tmpr_calib,     NULL_ENTRY,     0,          ADC_100,            "АЦП при 100°C");
+
 MAKE_MENU       (save_changes,  NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     0,          SAVE_CHANGES,       "Сохранить изм.");
 
 
