@@ -55,6 +55,12 @@ extern SPI_HandleTypeDef lcd_spi;
  */
 extern LCD_t LCD;
 
+/**
+ * @brief Buffer for update LCD
+ * @ingroup LCD
+ */
+extern uint8_t LCD_buf[];
+
 /*========== FUNCTION PROTOTYPES ==========*/
 
 int LCD_init (void);
@@ -75,5 +81,6 @@ void LCD_backlight_off (void);
 void LCD_backlight_toggle (void);
 int LCD_print_char(char ch, FontDef_t* font, LCD_color_t color);
 int LCD_print(char* string, FontDef_t* font, LCD_color_t color);
+uint8_t align_text_center(char* string, FontDef_t font);
 
 #endif // LCD_H

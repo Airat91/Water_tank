@@ -13,6 +13,7 @@
   * @brief work with LCD 128x64
   */
 
+/*========= GLOBAL VARIABLES ==========*/
 
 SPI_HandleTypeDef lcd_spi = {0};
 LCD_t LCD = {
@@ -50,15 +51,15 @@ int LCD_init (void){
 
     LCD_clr();
     LCD_backlight_on();
-    LCD_set_xy(0,38);
-    LCD_print("    LCD", &Font_11x18, LCD_COLOR_BLACK);
+    /*LCD_set_xy(0,38);
+    LCD_print("    LCD", &Font_7x10, LCD_COLOR_BLACK);
     LCD_set_xy(0,20);
-    LCD_print("initialised", &Font_11x18, LCD_COLOR_BLACK);
+    LCD_print("initialised", &Font_7x10, LCD_COLOR_BLACK);
     LCD_set_xy(5,2);
-    LCD_print("successful", &Font_11x18, LCD_COLOR_BLACK);
+    LCD_print("successful", &Font_7x10, LCD_COLOR_BLACK);
     LCD_update();
     HAL_Delay(2000);
-    LCD_clr();
+    LCD_clr();*/
     LCD_update();
     return result;
 }
@@ -455,4 +456,15 @@ int LCD_print(char* string, FontDef_t* font, LCD_color_t color){
         }
     }
     return result;
+}
+
+/**
+ * @brief Calculate start position to put string on center of display
+ * @param string - pionter to string buffer
+ * @param font - pointer to structure with used font
+ * @return x position for LCD_print()
+ */
+uint8_t align_text_center(char* string, FontDef_t font){
+    uint8_t len = (uint8_t)strlen(string);
+    return (uint8_t)(128-len*font.FontWidth)/2;
 }

@@ -60,6 +60,7 @@
 #include "adc.h"
 #include "portable.h"
 #include "am2302.h"
+#include "menu.h"
 
 /**
   * @defgroup MAIN
@@ -86,7 +87,7 @@ osThreadId menuTaskHandle;
 osThreadId controlTaskHandle;
 osThreadId adcTaskHandle;
 osThreadId am2302TaskHandle;
-osThreadId LCD_backlightTaskHandle;
+osThreadId navigationtTaskHandle;
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -97,8 +98,12 @@ static void MX_RTC_Init(void);
 //static void MX_ADC1_Init(void);
 //static void MX_USART1_UART_Init(void);
 static void tim2_init(void);
-
-
+static void main_page_print(void);
+static void main_menu_print(void);
+static void error_page_print(menu_page_t page);
+static void save_page_print (void);
+static void info_print (void);
+static void save_to_flash(void);
 static void save_to_bkp(u8 bkp_num, u8 var);
 static void save_float_to_bkp(u8 bkp_num, float var);
 static u8 read_bkp(u8 bkp_num);
@@ -107,6 +112,7 @@ static float read_float_bkp(u8 bkp_num, u8 sign);
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 uint32_t us_cnt_H = 0;
+uint8_t navigation_enable = TRUE;
 
 
 /**
@@ -121,6 +127,8 @@ int main(void){
     tim2_init();
     dcts_init();
     LCD_init();
+    menu_init();
+    adc_init();
     /*
     MX_RTC_Init();
     MX_ADC1_Init();
@@ -147,8 +155,8 @@ int main(void){
     osThreadDef(am2302_task, am2302_task, osPriorityNormal, 0, 128);
     am2302TaskHandle = osThreadCreate(osThread(am2302_task), NULL);
 
-    osThreadDef(LCD_backlight_task, LCD_backlight_task, osPriorityNormal, 0, 128);
-    LCD_backlightTaskHandle = osThreadCreate(osThread(LCD_backlight_task), NULL);
+    osThreadDef(navigation_task, navigation_task, osPriorityNormal, 0, 256);
+    navigationtTaskHandle = osThreadCreate(osThread(navigation_task), NULL);
 
     //osThreadDef(menu_task, menu_task, osPriorityNormal, 0, 364);
     //menuTaskHandle = osThreadCreate(osThread(menu_task), NULL);
@@ -328,72 +336,223 @@ void default_task(void const * argument){
  * @brief display_task
  * @param argument
  */
-#define display_task_period 1000
+#define display_task_period 500
 void display_task(void const * argument){
     (void)argument;
-    char string[100];
     uint32_t last_wake_time = osKernelSysTick();
-    adc_init();
-    const float vmax = 114.0;
-    uint8_t high_lev = 0;
     while(1){
         LCD_clr();
-
-        // print water tank
-        LCD_fill_area(0,0,50,63,LCD_COLOR_BLACK);
-        LCD_fill_area(1,1,49,62,LCD_COLOR_WHITE);
-
-        // print values
-        LCD_set_xy(3,45);
-        sprintf(string, "%3.1f%s", dcts_meas[WTR_TMPR].value, dcts_meas[WTR_TMPR].unit);
-        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-        LCD_set_xy(3,5);
-        sprintf(string, "%3.1f%s", dcts_meas[WTR_LVL].value, dcts_meas[WTR_LVL].unit);
-        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-        LCD_set_xy(1,30);
-        sprintf(string, "Горячая");
-        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-        LCD_set_xy(12,20);
-        sprintf(string, "вода");
-        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-
-
-        // fill water level
-        high_lev = (uint8_t)(dcts_meas[WTR_LVL].value/vmax*62);
-        if(high_lev > 61){
-            high_lev = 61;
+        switch (selectedMenuItem->Page){
+        case MAIN_PAGE:
+            main_page_print();
+            break;
+        case MAIN_MENU:
+        case COMMON_INFO:
+        case MEAS_CHANNELS:
+        case LVL_CALIB:
+        case TMPR_CALIB:
+            main_menu_print();
+            break;
+        case INFO:
+            info_print();
+            break;
+        case SAVE_CHANGES:
+            save_page_print();
+            break;
+        default:
+            error_page_print(selectedMenuItem->Page);
         }
-        LCD_invert_area(1,1,49,high_lev+1);
-
-        LCD_set_xy(55,52);
-        sprintf(string, "Предбанник");
-        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-        LCD_invert_area(52,53,127,63);
-        LCD_set_xy(52,41);
-        if(dcts_meas[PREDBANNIK_HUM].valid){
-            sprintf(string, "%.1f%s/%.0f%s", dcts_meas[PREDBANNIK_TMPR].value, dcts_meas[PREDBANNIK_TMPR].unit, dcts_meas[PREDBANNIK_HUM].value, dcts_meas[PREDBANNIK_HUM].unit);
-        }else{
-            sprintf(string, "Нет соед-я");
-        }
-        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-
-        LCD_set_xy(65,18);
-        sprintf(string, "Моечная");
-        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-        LCD_invert_area(52,19,127,29);
-        LCD_set_xy(52,7);
-        if(dcts_meas[MOYKA_HUM].valid){
-            sprintf(string, "%.1f%s/%.0f%s", dcts_meas[MOYKA_TMPR].value, dcts_meas[MOYKA_TMPR].unit, dcts_meas[MOYKA_HUM].value, dcts_meas[MOYKA_HUM].unit);
-        }else{
-            sprintf(string, "Нет соед-я");
-        }
-        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-
 
         LCD_update();
         osDelayUntil(&last_wake_time, display_task_period);
     }
 }
+
+#define navigation_task_period 20
+void navigation_task (void const * argument){
+    (void)argument;
+    uint32_t last_wake_time = osKernelSysTick();
+    while(1){
+        if(navigation_enable){
+            if((pressed_time[BUTTON_UP].pressed > 0)&&(pressed_time[BUTTON_UP].pressed < navigation_task_period)){
+                menuChange(selectedMenuItem->Previous);
+            }
+            if((pressed_time[BUTTON_DOWN].pressed > 0)&&(pressed_time[BUTTON_DOWN].pressed < navigation_task_period)){
+                menuChange(selectedMenuItem->Next);
+            }
+            if((pressed_time[BUTTON_LEFT].pressed > 0)&&(pressed_time[BUTTON_LEFT].pressed < navigation_task_period)){
+                menuChange(selectedMenuItem->Parent);
+            }
+            if((pressed_time[BUTTON_RIGHT].pressed > 0)&&(pressed_time[BUTTON_RIGHT].pressed < navigation_task_period)){
+                menuChange(selectedMenuItem->Child);
+            }
+            if((pressed_time[BUTTON_OK].pressed > 0)&&(pressed_time[BUTTON_OK].pressed < navigation_task_period)){
+                menuChange(selectedMenuItem->Child);
+            }
+        }
+        if((pressed_time[BUTTON_BREAK].pressed > 0)&&(pressed_time[BUTTON_BREAK].pressed < navigation_task_period)){
+            LCD_backlight_toggle();
+        }
+        if((pressed_time[BUTTON_SET].pressed > 0)&&(pressed_time[BUTTON_SET].pressed < navigation_task_period)){
+            save_to_flash();
+        }
+        osDelayUntil(&last_wake_time, navigation_task_period);
+    }
+}
+
+static void error_page_print(menu_page_t page){
+    char string[100];
+
+    LCD_set_xy(25,45);
+    sprintf(string, "СТРАНИЦА НЕ");
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_set_xy(25,35);
+    sprintf(string, "НАЙДЕНА: %d", page);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
+    sprintf(string, "<назад");
+    LCD_set_xy(0,0);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(0,0,42,11);
+}
+
+static void main_page_print(void){
+    char string[100];
+    const float vmax = 114.0;
+    uint8_t high_lev = 0;
+
+    // print water tank
+    LCD_fill_area(0,0,50,63,LCD_COLOR_BLACK);
+    LCD_fill_area(1,1,49,62,LCD_COLOR_WHITE);
+
+    // print values
+    sprintf(string, "%3.1f%s", dcts_meas[WTR_TMPR].value, dcts_meas[WTR_TMPR].unit);
+    LCD_set_xy(align_text_center(string, Font_7x10)-38,45);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    sprintf(string, "%3.1f%s", dcts_meas[WTR_LVL].value, dcts_meas[WTR_LVL].unit);
+    LCD_set_xy(align_text_center(string, Font_7x10)-38,5);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    sprintf(string, "Горячая");
+    LCD_set_xy(align_text_center(string, Font_7x10)-38,30);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    sprintf(string, "вода");
+    LCD_set_xy(align_text_center(string, Font_7x10)-38,20);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
+
+    // fill water level
+    high_lev = (uint8_t)(dcts_meas[WTR_LVL].value/vmax*62);
+    if(high_lev > 61){
+        high_lev = 61;
+    }
+    LCD_invert_area(1,1,49,high_lev+1);
+
+    sprintf(string, "Предбанник");
+    LCD_set_xy(align_text_center(string, Font_7x10)+27,52);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(52,53,127,63);
+    if(dcts_meas[PREDBANNIK_HUM].valid){
+        sprintf(string, "%.1f%s/%.0f%s", dcts_meas[PREDBANNIK_TMPR].value, dcts_meas[PREDBANNIK_TMPR].unit, dcts_meas[PREDBANNIK_HUM].value, dcts_meas[PREDBANNIK_HUM].unit);
+    }else{
+        sprintf(string, "Нет связи");
+    }
+    LCD_set_xy(align_text_center(string, Font_7x10)+27,41);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
+    sprintf(string, "Моечная");
+    LCD_set_xy(align_text_center(string, Font_7x10)+27,31);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(52,32,127,42);
+    if(dcts_meas[MOYKA_HUM].valid){
+        sprintf(string, "%.1f%s/%.0f%s", dcts_meas[MOYKA_TMPR].value, dcts_meas[MOYKA_TMPR].unit, dcts_meas[MOYKA_HUM].value, dcts_meas[MOYKA_HUM].unit);
+    }else{
+        sprintf(string, "Нет связи");
+    }
+    LCD_set_xy(align_text_center(string, Font_7x10)+27,20);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
+    sprintf(string, "Парная");
+    LCD_set_xy(align_text_center(string, Font_7x10)+27,10);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(52,12,127,21);
+    if(dcts_meas[MOYKA_HUM].valid){
+        sprintf(string, "%.1f%s", dcts_meas[PARILKA_TMPR].value, dcts_meas[PARILKA_TMPR].unit);
+    }else{
+        sprintf(string, "Нет связи");
+    }
+    LCD_set_xy(align_text_center(string, Font_7x10)+27,0);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+}
+
+static void main_menu_print (void){
+    char string[100];
+    menuItem* temp = selectedMenuItem->Parent;
+    sprintf(string, temp->Text);
+    LCD_set_xy(align_text_center(string, Font_7x10),52);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(0,53,127,63);
+
+    temp = selectedMenuItem->Previous;
+    sprintf(string, temp->Text);
+    LCD_set_xy(align_text_center(string, Font_7x10),39);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
+    sprintf(string, selectedMenuItem->Text);
+    LCD_set_xy(align_text_center(string, Font_7x10),26);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(5,26,120,38);
+    LCD_invert_area(6,27,119,37);
+
+    temp = selectedMenuItem->Next;
+    sprintf(string, temp->Text);
+    LCD_set_xy(align_text_center(string, Font_7x10),14);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
+    sprintf(string, "<назад      выбор>");
+    LCD_set_xy(0,0);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(0,0,42,11);
+    LCD_invert_area(83,0,127,11);
+}
+
+static void info_print (void){
+    char string[100];
+    menuItem* temp = selectedMenuItem->Parent;
+    sprintf(string, temp->Text);
+    LCD_set_xy(align_text_center(string, Font_7x10),52);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(0,53,127,63);
+
+    sprintf(string, "Имя: %s",dcts.dcts_name);
+    LCD_set_xy(2,40);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
+    sprintf(string, "Тип: %d",dcts.dcts_id);
+    LCD_set_xy(2,30);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    sprintf(string, "Версия: %s",dcts.dcts_ver);
+    LCD_set_xy(2,20);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
+    sprintf(string, "<назад");
+    LCD_set_xy(0,0);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(0,0,42,11);
+}
+
+static void save_page_print (void){
+    char string[100];
+
+    LCD_fill_area(5,20,123,48,LCD_COLOR_BLACK);
+    LCD_fill_area(6,21,122,47,LCD_COLOR_WHITE);
+    sprintf(string, "СОХРАНЕНИЕ НОВЫХ");
+    LCD_set_xy(align_text_center(string, Font_7x10),32);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    sprintf(string, "ПАРАМЕТРОВ");
+    LCD_set_xy(align_text_center(string, Font_7x10),22);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+}
+
 
 /**
  * @brief am2302_task
@@ -432,23 +591,7 @@ void am2302_task (void const * argument){
     }
 }
 
-/**
- * @brief LCD_backlight_task
- * @param argument
- */
-#define LCD_backlight_task_period 10
 
-void LCD_backlight_task (void const * argument){
-    (void)argument;
-    uint32_t last_wake_time = osKernelSysTick();
-    //uint8_t tick = 0;
-    while(1){
-        if((pressed_time[BUTTON_BREAK].pressed > 0)&&(pressed_time[BUTTON_BREAK].pressed < LCD_backlight_task_period)){
-            LCD_backlight_toggle();
-        }
-        osDelayUntil(&last_wake_time, LCD_backlight_task_period);
-    }
-}
 
 /**
  * @brief Init us timer
@@ -543,6 +686,15 @@ void _Error_Handler(char *file, int line)
     {
     }
     /* USER CODE END Error_Handler_Debug */
+}
+
+void save_to_flash(void){
+    static menuItem* current_menu;
+    current_menu = selectedMenuItem;
+
+    menuChange(&save_changes);
+    osDelay(2000);
+    menuChange(current_menu);
 }
 
 static void save_to_bkp(u8 bkp_num, u8 var){

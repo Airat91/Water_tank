@@ -93,6 +93,7 @@
 
 void _Error_Handler(char *, int);
 extern uint32_t us_cnt_H;
+extern uint8_t navigation_enable;
 
 #define Error_Handler() _Error_Handler(__FILE__, __LINE__)
 #ifdef __cplusplus
@@ -102,7 +103,7 @@ extern uint32_t us_cnt_H;
 void display_task(void const * argument);
 void am2302_task(void const * argument);
 void default_task(void const * argument);
-void LCD_backlight_task(void const * argument);
+void navigation_task(void const * argument);
 uint32_t us_tim_get_value(void);
 void us_tim_delay(uint32_t us);
 
