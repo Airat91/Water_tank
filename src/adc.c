@@ -23,28 +23,6 @@ ADC_HandleTypeDef hadc1;
 #define PWR_K   (float)2.187
 #define VREF_INT (float)1.2
 
-#define WTR_LEV_A1  (float)5.50069e-02
-#define WTR_LEV_A2  (float)-2.06272e+01
-static const float wtr_lev_coef[2] = {
-    5.50069e-02,
-    -2.06272e+01,
-};
-
-#define WTR_TMP_A1  (float)-4.16259e-15
-#define WTR_TMP_A2  (float) 3.41573e-11
-#define WTR_TMP_A3  (float)-1.10305e-07
-#define WTR_TMP_A4  (float) 1.79162e-04
-#define WTR_TMP_A5  (float)-1.75460e-01
-#define WTR_TMP_A6  (float) 1.27727e+02
-static const float wtr_tmpr_coef[6] = {
-    1.27727e+02,
-    -1.75460e-01,
-    1.79162e-04,
-    -1.10305e-07,
-    3.41573e-11,
-    -4.16259e-15,
-};
-
 /*========== FUNCTIONS ==========*/
 
 /**

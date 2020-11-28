@@ -61,6 +61,7 @@
 #include "portable.h"
 #include "am2302.h"
 #include "menu.h"
+#include "flash.h"
 
 /**
   * @defgroup MAIN
@@ -105,7 +106,8 @@ static void save_page_print (void);
 static void info_print (void);
 static void meas_channels_print(void);
 static void calib_print(uint8_t start_channel);
-static void save_to_flash(void);
+static void save_params(void);
+static void restore_params(void);
 static void save_to_bkp(u8 bkp_num, u8 var);
 static void save_float_to_bkp(u8 bkp_num, float var);
 static u8 read_bkp(u8 bkp_num);
@@ -151,6 +153,7 @@ int main(void){
     SystemClock_Config();
     tim2_init();
     dcts_init();
+    restore_params();
     /*
     MX_RTC_Init();
     MX_ADC1_Init();
@@ -480,7 +483,7 @@ void navigation_task (void const * argument){
             LCD_backlight_toggle();
         }
         if((pressed_time[BUTTON_SET].pressed > 0)&&(pressed_time[BUTTON_SET].pressed < navigation_task_period)){
-            save_to_flash();
+            save_params();
         }
         osDelayUntil(&last_wake_time, navigation_task_period);
     }
@@ -730,7 +733,7 @@ static void save_page_print (void){
     sprintf(string, "ÑÎÕÐÀÍÅÍÈÅ ÍÎÂÛÕ");
     LCD_set_xy(align_text_center(string, Font_7x10),32);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    sprintf(string, "ÏÀÐÀÌÅÒÐÎÂ");
+    sprintf(string, "ÊÎÝÔÔÈÖÈÅÍÒÎÂ");
     LCD_set_xy(align_text_center(string, Font_7x10),22);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
 }
@@ -886,13 +889,54 @@ void _Error_Handler(char *file, int line)
     /* USER CODE END Error_Handler_Debug */
 }
 
-void save_to_flash(void){
+static void save_params(void){
     static menuItem* current_menu;
     current_menu = selectedMenuItem;
-
     menuChange(&save_changes);
+
+    int area_cnt = find_free_area();
+    if(area_cnt < 0){
+        uint32_t erase_error = 0;
+        FLASH_EraseInitTypeDef flash_erase = {0};
+        flash_erase.TypeErase = FLASH_TYPEERASE_PAGES;
+        flash_erase.NbPages = 1;
+        flash_erase.PageAddress = FLASH_SAVE_PAGE_ADDRESS;
+        HAL_FLASH_Unlock();
+        HAL_FLASHEx_Erase(&flash_erase, &erase_error);
+        HAL_FLASH_Lock();
+        area_cnt = 0;
+    }
+    for(uint8_t i = 0; i < 6; i ++){
+        save_to_flash(area_cnt, i, &lvl_calib_table[i]);
+    }
+    for(uint8_t i = 0; i < 11; i ++){
+        save_to_flash(area_cnt, i+6, &tmpr_calib_table[i]);
+    }
     osDelay(2000);
     menuChange(current_menu);
+}
+
+static void restore_params(void){
+    int area_cnt = find_free_area();
+    if(area_cnt != 0){
+        if(area_cnt == -1){
+            // page is fill, actual values in last area
+            area_cnt = SAVE_AREA_NMB - 1;
+        }else{
+            // set last filled area number
+            area_cnt--;
+        }
+        uint16_t *addr;
+        addr = (uint32_t)(FLASH_SAVE_PAGE_ADDRESS+ area_cnt*SAVE_AREA_SIZE);
+        for(uint8_t i = 0; i < 6; i++){
+            lvl_calib_table[i] = *addr;
+            addr++;
+        }
+        for(uint8_t i = 0; i < 11; i++){
+            tmpr_calib_table[i] = *addr;
+            addr++;
+        }
+    }
 }
 
 static void save_to_bkp(u8 bkp_num, u8 var){

@@ -91,27 +91,29 @@
  extern "C" {
 #endif
 
-void _Error_Handler(char *, int);
-extern uint32_t us_cnt_H;
-extern uint8_t navigation_enable;
-extern uint16_t lvl_calib_table[];
-extern uint16_t tmpr_calib_table[];
 
 #define Error_Handler() _Error_Handler(__FILE__, __LINE__)
 #ifdef __cplusplus
 }
 #endif
 
- typedef enum{
-     MENU_NAVIGATION,
-     DIGIT_EDIT,
- }navigation_t;
+typedef enum{
+    MENU_NAVIGATION,
+    DIGIT_EDIT,
+}navigation_t;
 
- typedef struct{
-     uint16_t * p_val;
-     uint8_t digit;
-     uint8_t digit_max;
- }edit_val_t;
+typedef struct{
+    uint16_t * p_val;
+    uint8_t digit;
+    uint8_t digit_max;
+}edit_val_t;
+
+void _Error_Handler(char *, int);
+extern uint32_t us_cnt_H;
+extern navigation_t navigation_style;
+extern uint16_t lvl_calib_table[];
+extern uint16_t tmpr_calib_table[];
+extern edit_val_t edit_val;
 
 void display_task(void const * argument);
 void am2302_task(void const * argument);
