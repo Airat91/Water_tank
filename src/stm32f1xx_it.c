@@ -39,6 +39,7 @@
 #include "pin_map.h"
 #include "control.h"
 #include "main.h"
+#include "uart.h"
 
 /* USER CODE BEGIN 0 */
 
@@ -232,13 +233,15 @@ void TIM2_IRQHandler(void){
 /**
 * @brief This function handles USART1 global interrupt.
 */
-void USART1_IRQHandler(void)
+void USART2_IRQHandler(void)
 {
   /* USER CODE BEGIN USART1_IRQn 0 */
 
   /* USER CODE END USART1_IRQn 0 */
-  HAL_UART_IRQHandler(&huart1);
+  HAL_UART_IRQHandler(&huart2);
   /* USER CODE BEGIN USART1_IRQn 1 */
+
+  uart_handle();
 
   /* USER CODE END USART1_IRQn 1 */
 }

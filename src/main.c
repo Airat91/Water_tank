@@ -62,6 +62,7 @@
 #include "am2302.h"
 #include "menu.h"
 #include "flash.h"
+#include "uart.h"
 
 /**
   * @defgroup MAIN
@@ -153,6 +154,7 @@ int main(void){
     SystemClock_Config();
     tim2_init();
     dcts_init();
+    uart_init(115200, 8, 1, PARITY_NONE, 10000);
     restore_params();
     /*
     MX_RTC_Init();
