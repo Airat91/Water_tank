@@ -52,6 +52,9 @@
 #define __MAIN_H__
 
 #include "stdint.h"
+#include "stm32f1xx_hal.h"
+#include "stdlib.h"
+#include "cmsis_os.h"
 
 #define AIR_PORT GPIOA
 #define AIR_PIN  LL_GPIO_PIN_7
@@ -114,11 +117,25 @@ extern navigation_t navigation_style;
 extern uint16_t lvl_calib_table[];
 extern uint16_t tmpr_calib_table[];
 extern edit_val_t edit_val;
+extern RTC_HandleTypeDef hrtc;
+extern TIM_HandleTypeDef htim2;
+extern TIM_HandleTypeDef htim3;
+extern osThreadId defaultTaskHandle;
+extern osThreadId buttonsTaskHandle;
+extern osThreadId displayTaskHandle;
+extern osThreadId menuTaskHandle;
+extern osThreadId controlTaskHandle;
+extern osThreadId adcTaskHandle;
+extern osThreadId am2302TaskHandle;
+extern osThreadId navigationtTaskHandle;
+extern osThreadId uartTaskHandle;
 
 void display_task(void const * argument);
 void am2302_task(void const * argument);
 void default_task(void const * argument);
 void navigation_task(void const * argument);
+void uart_task(void const * argument);
+
 uint32_t us_tim_get_value(void);
 void us_tim_delay(uint32_t us);
 uint16_t uint16_pow(uint16_t x, uint16_t pow);

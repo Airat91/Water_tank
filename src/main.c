@@ -48,9 +48,6 @@
   */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "stm32f1xx_hal.h"
-#include "stdlib.h"
-#include "cmsis_os.h"
 #include "stm32f1xx_hal_gpio.h"
 #include "dcts.h"
 #include "dcts_config.h"
@@ -81,7 +78,6 @@ typedef enum{
 RTC_HandleTypeDef hrtc;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
-UART_HandleTypeDef huart1;
 osThreadId defaultTaskHandle;
 osThreadId buttonsTaskHandle;
 osThreadId displayTaskHandle;
@@ -90,6 +86,7 @@ osThreadId controlTaskHandle;
 osThreadId adcTaskHandle;
 osThreadId am2302TaskHandle;
 osThreadId navigationtTaskHandle;
+osThreadId uartTaskHandle;
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -154,7 +151,6 @@ int main(void){
     SystemClock_Config();
     tim2_init();
     dcts_init();
-    uart_init(115200, 8, 1, PARITY_NONE, 10000);
     restore_params();
     /*
     MX_RTC_Init();
@@ -185,8 +181,8 @@ int main(void){
     osThreadDef(navigation_task, navigation_task, osPriorityNormal, 0, 256);
     navigationtTaskHandle = osThreadCreate(osThread(navigation_task), NULL);
 
-    //osThreadDef(menu_task, menu_task, osPriorityNormal, 0, 364);
-    //menuTaskHandle = osThreadCreate(osThread(menu_task), NULL);
+    osThreadDef(uart_task, uart_task, osPriorityNormal, 0, 364);
+    uartTaskHandle = osThreadCreate(osThread(uart_task), NULL);
 
 
     /* Start scheduler */
@@ -784,6 +780,30 @@ void am2302_task (void const * argument){
         }
 
         osDelayUntil(&last_wake_time, am2302_task_period);
+    }
+}
+
+#define uart_task_period 5
+void uart_task(void const * argument){
+    (void)argument;
+    uart_init(115200, 8, 1, PARITY_NONE, 10000);
+    uint32_t last_wake_time = osKernelSysTick();
+    while(1){
+        if((uart_2.state & UART_STATE_RECIEVE)&&\
+                ((uint16_t)(us_tim_get_value() - uart_2.timeout_last) > uart_2.timeout)){
+            memcpy(uart_2.buff_received, uart_2.buff_in, uart_2.in_ptr);
+            uart_2.received_len = uart_2.in_ptr;
+            uart_2.state &= ~UART_STATE_RECIEVE;
+            uart_2.state &= ~UART_STATE_ERROR;
+            uart_2.state |= UART_STATE_IN_HANDING;
+
+            modbus_packet_handle(uart_2.buff_received, uart_2.received_len);
+            if(uart_2.state & UART_STATE_IN_HANDING){
+                dcts_packet_handle(uart_2.buff_received, uart_2.received_len);
+            }
+        }
+
+        osDelayUntil(&last_wake_time, uart_task_period);
     }
 }
 

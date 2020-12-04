@@ -2,6 +2,9 @@
 #include "main.h"
 #include "pin_map.h"
 #include "dcts.h"
+#include "FreeRTOS.h"
+#include "cmsis_os.h"
+#include "string.h"
 #include "stm32f1xx_hal_uart.h"
 #include "stm32f1xx_hal_usart.h"
 #include "stm32f1xx_hal_rcc.h"
@@ -20,8 +23,7 @@ uint8_t uart_buff_out[UART_BUFF_MAX_LEN];
 uint8_t uart_buff_received[UART_BUFF_MAX_LEN];
 uint8_t uart_buff_in[UART_BUFF_MAX_LEN];
 UART_HandleTypeDef huart2;
-uart_stream_t rs_485 = {
-    .instance = huart2,
+uart_stream_t uart_2 = {
     .out_len = 0,
     .out_ptr = 0,
     .in_len = 0,
@@ -30,7 +32,7 @@ uart_stream_t rs_485 = {
     .max_len = UART_BUFF_MAX_LEN,
     .err_cnt = 0,
     .timeout = 0,
-    .timeout_cnt = 0,
+    .timeout_last = 0,
     .state = UART_STATE_ERASE,
     .buff_out = uart_buff_out,
     .buff_in = uart_buff_in,
@@ -59,7 +61,7 @@ int uart_init(uint32_t bit_rate,uint8_t word_len,uint8_t stop_bit_number,parity_
     int result = 0;
     uart_gpio_init();
 
-    rs_485.timeout = rx_delay;
+    uart_2.timeout = rx_delay;
 
     huart2.Instance = USART2;
     huart2.Init.BaudRate = bit_rate;
@@ -114,8 +116,12 @@ int uart_init(uint32_t bit_rate,uint8_t word_len,uint8_t stop_bit_number,parity_
     return result;
 }
 
+/**
+ * @brief Disable UART clk
+ * @ingroup uart
+ */
 void uart_deinit(){
-
+    __HAL_RCC_USART2_CLK_DISABLE();
 }
 
 /**
@@ -153,129 +159,91 @@ void uart_gpio_deinit(void){
     HAL_GPIO_DeInit(RS_485_TX_PORT,RS_485_TX_PIN);
 }
 
-int uart_send(uint8_t *buff, uint8_t len){
 
+int uart_send(const uint8_t * buff,uint16_t len){
+    int result = 0;
+    if((len <= uart_2.max_len) &&
+        ((uart_2.state & UART_STATE_SENDING) == 0)){
+        uart_2.state |= UART_STATE_SENDING;
+        HAL_GPIO_WritePin(RS_485_DE_PORT, RS_485_DE_PIN,GPIO_PIN_SET);
+        taskENTER_CRITICAL();
+        memcpy(uart_2.buff_out,buff,len);
+        len = (len<uart_2.max_len)?len:uart_2.max_len-1;
+        uart_2.out_len = len;
+        huart2.Instance->CR1 &= ~USART_CR1_RXNEIE;  // not ready to input messages
+        uart_2.out_ptr =0;
+        //uart_2.send_delay = 3;
+        huart2.Instance->CR1 &= ~USART_CR1_TCIE;
+        //sending_timer_start(port);
+        taskEXIT_CRITICAL();
+    }else{
+        result = -1;
+    }
+    return result;
 }
 
 int uart_handle(void){
 
     uint32_t dd;
     uint32_t status;
-    static uint8_t state_slip;
     dd=0;
     status = huart2.Instance->SR;
     // receive mode
     if(status & USART_SR_RXNE){
         huart2.Instance->SR &= ~(USART_SR_RXNE);
         dd=huart2.Instance->DR;
-        if(rs_485.self.in_type == UART_IN_TYPE_SLIP){
-            if(uart_hand[port].in_ptr < uart_hand[port].max_len &&\
-                    ((uart_hand[port].in_ptr!=0) || (dd==SLIP_END)||(state_slip[port] & BIT(SLIP_RECV_START)))){
-                if (state_slip[port] & BIT(SLIP_RECV_ESCAPE)) {
-                    switch (dd) {
-                    case SLIP_ESC_END:
-                        uart_hand[port].buff_in[uart_hand[port].in_ptr++]=SLIP_END;
-                        break;
-                    case SLIP_ESC_ESC:
-                        uart_hand[port].buff_in[uart_hand[port].in_ptr++]=SLIP_ESC;
-                        break;
-                    }
-                    state_slip[port] &= ~BIT(SLIP_RECV_ESCAPE);
-                }else{
-                    switch (dd) {
-                    case SLIP_END:
-                        if (uart_hand[port].in_ptr > 0) {
-                            if(uart_hand[port].state & CHANNEL_STATE_IN_HANDING){
-                                uart_hand[port].state |= CHANNEL_STATE_ERROR;
-                            }else{
-                                for(u16 i=0;i<uart_hand[port].in_ptr;i++){
-                                    uart_hand[port].buff_received[i]=uart_hand[port].buff_in[i];
-                                }
-                                uart_hand[port].in_len=uart_hand[port].in_ptr;
-                                uart_hand[port].state |= CHANNEL_STATE_IN_HANDING;
-                            }
-                            uart_hand[port].in_ptr=0;
-                            state_slip[port] &= ~BIT(SLIP_RECV_START);
-                        }else{
-                            state_slip[port] |= BIT(SLIP_RECV_START);
-                        }
-                        break;
-                    case SLIP_ESC:
-                        if (state_slip[port] & BIT(SLIP_RECV_START)){
-                            state_slip[port] |= BIT(SLIP_RECV_ESCAPE);
-                        }
-                        break;
-                    default:
-                        if (state_slip[port] & BIT(SLIP_RECV_START)){
-                            uart_hand[port].buff_in[uart_hand[port].in_ptr++]=(u8)dd;
-                        }
-                    }
-                }
-            }else{
-                uart_hand[port].in_ptr = 0;
-                state_slip[port] = 0;
-            }
-        }else{
-            uart_hand[port].self.last_time = osKernelSysTick();
-#if DEBUG
-            rx_not_empty_count[port]++;
-#endif
-            if(uart_hand[port].in_ptr < uart_hand[port].max_len &&\
-                    ((uart_hand[port].in_ptr!=0) || (dd!=0))){
-                uart_hand[port].buff_in[uart_hand[port].in_ptr++]=(u8)dd;
-                uart_hand[port].in_ptr++;
-            }
+        uart_2.state |= UART_STATE_RECIEVE;
+        uart_2.timeout_last = us_tim_get_value();
+        if(uart_2.in_ptr < uart_2.max_len &&\
+                ((uart_2.in_ptr!=0) || (dd!=0))){
+            uart_2.buff_in[uart_2.in_ptr++]=(uint8_t)dd;
+            uart_2.in_ptr++;
         }
+
         // check for errors
         if (status & USART_SR_PE){// Parity error
-            uart_hand[port].state |= CHANNEL_STATE_ERROR;
-            uart_hand[port].par_err_cnt++;
+            uart_2.state |= UART_STATE_ERROR;
+            uart_2.err_cnt++;
         } else if (status & USART_SR_FE){//frame error
-            uart_hand[port].state |= CHANNEL_STATE_ERROR;
-            uart_hand[port].frame_err_cnt++;
+            uart_2.state |= UART_STATE_ERROR;
+           uart_2.err_cnt++;
         } else if (status & USART_SR_NE){//noise detected
-            uart_hand[port].state |= CHANNEL_STATE_ERROR;
-            uart_hand[port].noise_err_cnt++;
+            uart_2.state |= UART_STATE_ERROR;
+            uart_2.err_cnt++;
         }
     }
+    // transmit mode
     if((status & USART_SR_TXE) ){
-        // transmit mode
-        if(!(uart_hand[port].state & CHANNEL_STATE_IS_LAST_BYTE)){
-            uart_hand[port].out_ptr = uart_hand[port].out_ptr<uart_hand[port].max_len?\
-                        uart_hand[port].out_ptr:uart_hand[port].max_len-1;
-            if(uart_hand[port].out_ptr == uart_hand[port].out_len-1){
-                uart_base[port]->CR1 &= ~USART_CR1_TXEIE;
-                uart_base[port]->CR1 |= USART_CR1_TCIE;
-                uart_base[port]->SR &=~USART_SR_TC;
-                uart_hand[port].state |= CHANNEL_STATE_IS_LAST_BYTE;
-                uart_base[port]->DR=uart_hand[port].buff_out[uart_hand[port].out_ptr];
+        if(!(uart_2.state & UART_STATE_IS_LAST_BYTE)){
+            uart_2.out_ptr = uart_2.out_ptr<uart_2.max_len?\
+                        uart_2.out_ptr:uart_2.max_len-1;
+            if(uart_2.out_ptr == uart_2.out_len-1){
+                huart2.Instance->CR1 &= ~USART_CR1_TXEIE;
+                huart2.Instance->CR1 |= USART_CR1_TCIE;
+                huart2.Instance->SR &=~USART_SR_TC;
+                uart_2.state |= UART_STATE_IS_LAST_BYTE;
+                huart2.Instance->DR=uart_2.buff_out[uart_2.out_ptr];
             }else {
-                uart_base[port]->DR=uart_hand[port].buff_out[uart_hand[port].out_ptr];
+                huart2.Instance->DR=uart_2.buff_out[uart_2.out_ptr];
             }
-#if DEBUG
-            tx_empty_count[port]++;
-#endif
-            uart_hand[port].out_ptr++;
+            uart_2.out_ptr++;
         }else if(status & USART_SR_TC){
             // end of transmit
-            uart_base[port]->CR1 &= ~USART_CR1_TXEIE;
-            uart_base[port]->CR1 &= ~USART_CR1_TCIE;
-            uart_base[port]->SR &=~USART_SR_TC;
-            uart_hand[port].state |= CHANNEL_STATE_SENDED;
-            uart_hand[port].state &=~CHANNEL_STATE_SENDING;
-            uart_hand[port].state &=~CHANNEL_STATE_IS_LAST_BYTE;
-#if DEBUG
-            tx_complite_count[port]++;
-#endif
-            uart_hand[port].in_ptr = 0;
-            uart_base[port]->CR1 |= USART_CR1_RXNEIE;   // ready to input messages
+            huart2.Instance->CR1 &= ~USART_CR1_TXEIE;
+            huart2.Instance->CR1 &= ~USART_CR1_TCIE;
+            huart2.Instance->SR &=~USART_SR_TC;
+            uart_2.state |= UART_STATE_SENDED;
+            uart_2.state &=~UART_STATE_SENDING;
+            uart_2.state &=~UART_STATE_IS_LAST_BYTE;
+            uart_2.in_ptr = 0;
+            huart2.Instance->CR1 |= USART_CR1_RXNEIE;   // ready to input messages
         }
     }
     // overrun error without RXNE flag
     if(status & USART_SR_ORE){
-        uart_hand[port].state |= CHANNEL_STATE_ERROR;
-        uart_hand[port].ovrrun_err_cnt++;
-        dd=USART1->SR;
-        dd=USART1->DR;
+        uart_2.state |= UART_STATE_ERROR;
+        uart_2.err_cnt++;
+        dd=huart2.Instance->SR;
+        dd=huart2.Instance->DR;
     }
 }
