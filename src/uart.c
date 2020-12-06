@@ -59,6 +59,7 @@ uart_stream_t uart_2 = {
  */
 int uart_init(uint32_t bit_rate,uint8_t word_len,uint8_t stop_bit_number,parity_t parity,uint16_t rx_delay){
     int result = 0;
+    __HAL_RCC_USART2_CLK_ENABLE();
     uart_gpio_init();
 
     uart_2.timeout = rx_delay;
@@ -102,14 +103,20 @@ int uart_init(uint32_t bit_rate,uint8_t word_len,uint8_t stop_bit_number,parity_
         result = -4;
     }
     huart2.Init.Mode = UART_MODE_TX_RX;
-    huart2.Init.HwFlowCtl = UART_HWCONTROL_RTS;
+    huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
     huart2.Init.OverSampling = UART_OVERSAMPLING_16;
     if (HAL_UART_Init(&huart2) != HAL_OK)
     {
       result = -1;
     }
 
-    __HAL_RCC_USART2_CLK_ENABLE();
+    uint16_t i = 0x0FFF; //delay for debug
+    while(i){
+        i--;
+    }
+
+    huart2.Instance->CR1 |= USART_CR1_RXNEIE;   // ready to input messages
+
     NVIC_ClearPendingIRQ(USART2_IRQn);
     HAL_NVIC_EnableIRQ(USART2_IRQn);
 
@@ -139,14 +146,19 @@ void uart_gpio_init(void){
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
 
-    GPIO_InitStruct.Pin = RS_485_DE_PIN;
-    HAL_GPIO_Init(RS_485_DE_PORT, &GPIO_InitStruct);
     GPIO_InitStruct.Pin = RS_485_TX_PIN;
     HAL_GPIO_Init(RS_485_TX_PORT, &GPIO_InitStruct);
 
     GPIO_InitStruct.Mode = GPIO_MODE_AF_INPUT;
     GPIO_InitStruct.Pin = RS_485_RX_PIN;
     HAL_GPIO_Init(RS_485_RX_PORT, &GPIO_InitStruct);
+
+
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+    GPIO_InitStruct.Pin = RS_485_DE_PIN;
+    HAL_GPIO_WritePin(RS_485_DE_PORT, RS_485_DE_PIN, GPIO_PIN_RESET);
+    HAL_GPIO_Init(RS_485_DE_PORT, &GPIO_InitStruct);
 }
 
 /**
@@ -171,9 +183,11 @@ int uart_send(const uint8_t * buff,uint16_t len){
         len = (len<uart_2.max_len)?len:uart_2.max_len-1;
         uart_2.out_len = len;
         huart2.Instance->CR1 &= ~USART_CR1_RXNEIE;  // not ready to input messages
-        uart_2.out_ptr =0;
+        uart_2.out_ptr = 1;
         //uart_2.send_delay = 3;
-        huart2.Instance->CR1 &= ~USART_CR1_TCIE;
+        //huart2.Instance->CR1 |= USART_CR1_TCIE;
+        huart2.Instance->CR1 |= USART_CR1_TXEIE;
+        huart2.Instance->DR = uart_2.buff_out[0];
         //sending_timer_start(port);
         taskEXIT_CRITICAL();
     }else{

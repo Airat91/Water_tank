@@ -48,6 +48,9 @@
   */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "stm32f1xx_hal.h"
+#include "stdlib.h"
+#include "cmsis_os.h"
 #include "stm32f1xx_hal_gpio.h"
 #include "dcts.h"
 #include "dcts_config.h"
@@ -181,7 +184,7 @@ int main(void){
     osThreadDef(navigation_task, navigation_task, osPriorityNormal, 0, 256);
     navigationtTaskHandle = osThreadCreate(osThread(navigation_task), NULL);
 
-    osThreadDef(uart_task, uart_task, osPriorityNormal, 0, 364);
+    osThreadDef(uart_task, uart_task, osPriorityNormal, 0, 128);
     uartTaskHandle = osThreadCreate(osThread(uart_task), NULL);
 
 
@@ -787,6 +790,9 @@ void am2302_task (void const * argument){
 void uart_task(void const * argument){
     (void)argument;
     uart_init(115200, 8, 1, PARITY_NONE, 10000);
+    uint16_t tick = 0;
+    uint8_t string[20] = {0};
+    memcpy(string, "Test\n", 5);
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
         if((uart_2.state & UART_STATE_RECIEVE)&&\
@@ -797,10 +803,16 @@ void uart_task(void const * argument){
             uart_2.state &= ~UART_STATE_ERROR;
             uart_2.state |= UART_STATE_IN_HANDING;
 
-            modbus_packet_handle(uart_2.buff_received, uart_2.received_len);
+            //modbus_packet_handle(uart_2.buff_received, uart_2.received_len);
             if(uart_2.state & UART_STATE_IN_HANDING){
                 dcts_packet_handle(uart_2.buff_received, uart_2.received_len);
             }
+        }
+        if(tick == 200){
+            tick = 0;
+            uart_send(string,5);
+        }else{
+            tick++;
         }
 
         osDelayUntil(&last_wake_time, uart_task_period);
