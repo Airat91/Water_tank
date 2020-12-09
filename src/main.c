@@ -792,7 +792,7 @@ void uart_task(void const * argument){
     uart_init(115200, 8, 1, PARITY_NONE, 10000);
     uint16_t tick = 0;
     uint8_t string[20] = {0};
-    memcpy(string, "Test\n", 5);
+    memcpy(string, "Test1234567890\n", 15);
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
         if((uart_2.state & UART_STATE_RECIEVE)&&\
@@ -810,7 +810,7 @@ void uart_task(void const * argument){
         }
         if(tick == 200){
             tick = 0;
-            uart_send(string,5);
+            uart_send(string,(uint16_t)strlen(string));
         }else{
             tick++;
         }

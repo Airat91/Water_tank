@@ -183,11 +183,12 @@ int uart_send(const uint8_t * buff,uint16_t len){
         len = (len<uart_2.max_len)?len:uart_2.max_len-1;
         uart_2.out_len = len;
         huart2.Instance->CR1 &= ~USART_CR1_RXNEIE;  // not ready to input messages
-        uart_2.out_ptr = 1;
+        uart_2.out_ptr = 0;
         //uart_2.send_delay = 3;
         //huart2.Instance->CR1 |= USART_CR1_TCIE;
         huart2.Instance->CR1 |= USART_CR1_TXEIE;
-        huart2.Instance->DR = uart_2.buff_out[0];
+        //huart2.Instance->DR = uart_2.buff_out[0];
+        huart2.Instance->SR |= USART_SR_TXE;
         //sending_timer_start(port);
         taskEXIT_CRITICAL();
     }else{
@@ -251,6 +252,7 @@ int uart_handle(void){
             uart_2.state &=~UART_STATE_IS_LAST_BYTE;
             uart_2.in_ptr = 0;
             huart2.Instance->CR1 |= USART_CR1_RXNEIE;   // ready to input messages
+            HAL_GPIO_WritePin(RS_485_DE_PORT, RS_485_DE_PIN, GPIO_PIN_RESET);
         }
     }
     // overrun error without RXNE flag
