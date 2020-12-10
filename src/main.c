@@ -169,7 +169,7 @@ int main(void){
     //osThreadDef(control_task, control_task, osPriorityNormal, 0, 364);
     //controlTaskHandle = osThreadCreate(osThread(control_task), NULL);
 
-    osThreadDef(display_task, display_task, osPriorityNormal, 0, 512);
+    osThreadDef(display_task, display_task, osPriorityNormal, 0, 256);
     displayTaskHandle = osThreadCreate(osThread(display_task), NULL);
 
     osThreadDef(adc_task, adc_task, osPriorityNormal, 0, 512);
@@ -181,10 +181,10 @@ int main(void){
     osThreadDef(am2302_task, am2302_task, osPriorityNormal, 0, 128);
     am2302TaskHandle = osThreadCreate(osThread(am2302_task), NULL);
 
-    osThreadDef(navigation_task, navigation_task, osPriorityNormal, 0, 256);
+    osThreadDef(navigation_task, navigation_task, osPriorityNormal, 0, 128);
     navigationtTaskHandle = osThreadCreate(osThread(navigation_task), NULL);
 
-    osThreadDef(uart_task, uart_task, osPriorityNormal, 0, 128);
+    osThreadDef(uart_task, uart_task, osPriorityNormal, 0, 512);
     uartTaskHandle = osThreadCreate(osThread(uart_task), NULL);
 
 
@@ -613,7 +613,7 @@ static void info_print (void){
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     LCD_invert_area(0,53,127,63);
 
-    sprintf(string, "Èìÿ: %s",dcts.dcts_name);
+    sprintf(string, "Èìÿ: %s",dcts.dcts_name_cyr);
     LCD_set_xy(2,40);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
 
@@ -642,10 +642,10 @@ static void meas_channels_print(void){
     temp = selectedMenuItem;
     for(uint8_t i = 0; i < 2; i++){
         channel = (uint8_t)temp->Page - MEAS_CH_0;
-        sprintf(string, "%s:",dcts_meas[channel].name);
+        sprintf(string, "%s:",dcts_meas[channel].name_cyr);
         LCD_set_xy(2,41-21*i);
         LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-        sprintf(string, "%.2f(%s) ", dcts_meas[channel].value, dcts_meas[channel].unit);
+        sprintf(string, "%.2f(%s) ", dcts_meas[channel].value, dcts_meas[channel].unit_cyr);
         LCD_set_xy(align_text_right(string,Font_7x10),31-21*i);
         LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
         temp = temp->Next;
@@ -791,14 +791,15 @@ void uart_task(void const * argument){
     (void)argument;
     uart_init(115200, 8, 1, PARITY_NONE, 10000);
     uint16_t tick = 0;
-    uint8_t string[20] = {0};
-    memcpy(string, "Test1234567890\n", 15);
+    char string[100];
+    //memcpy(string, "Test1234567890\n", 15);
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
         if((uart_2.state & UART_STATE_RECIEVE)&&\
                 ((uint16_t)(us_tim_get_value() - uart_2.timeout_last) > uart_2.timeout)){
             memcpy(uart_2.buff_received, uart_2.buff_in, uart_2.in_ptr);
             uart_2.received_len = uart_2.in_ptr;
+            uart_2.in_ptr = 0;
             uart_2.state &= ~UART_STATE_RECIEVE;
             uart_2.state &= ~UART_STATE_ERROR;
             uart_2.state |= UART_STATE_IN_HANDING;
@@ -808,9 +809,15 @@ void uart_task(void const * argument){
                 dcts_packet_handle(uart_2.buff_received, uart_2.received_len);
             }
         }
-        if(tick == 200){
+        if(tick == 5000/uart_task_period){
             tick = 0;
-            uart_send(string,(uint16_t)strlen(string));
+            for(uint8_t i = 0; i < MEAS_NUM; i++){
+                sprintf(string, "%s:\t%.1f(%s)\n",dcts_meas[i].name,(double)dcts_meas[i].value,dcts_meas[i].unit);
+                if(i == MEAS_NUM - 1){
+                    strncat(string,"\n",1);
+                }
+                uart_send(string,(uint16_t)strlen(string));
+            }
         }else{
             tick++;
         }
