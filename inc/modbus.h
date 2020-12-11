@@ -36,6 +36,7 @@
 #define REG_AI_SHIFT 0
 
 #define htons(x) ((uint16_t)((((x) & (uint16_t)0x00ffU) << 8) | (((x) & (uint16_t)0xff00U) >> 8)))
+#define BIT(x)  (1 << x)
 /**
   * @}
   */
@@ -58,6 +59,11 @@ typedef struct {
     u32 len;      /*!< len of space */
     u8 command;   /*!< special modbus command or use 0xff for all commands*/
 }dinamic_address_space_t;
+
+typedef union {
+    float f;
+    u8 byte[4];
+}dcts_mdb_t;
 
 /*========== FUNCTION PROTOTYPES ==========*/
 

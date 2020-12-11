@@ -63,6 +63,7 @@
 #include "menu.h"
 #include "flash.h"
 #include "uart.h"
+#include "modbus.h"
 
 /**
   * @defgroup MAIN
@@ -806,7 +807,11 @@ void uart_task(void const * argument){
             uart_2.state &= ~UART_STATE_ERROR;
             uart_2.state |= UART_STATE_IN_HANDING;
 
-            //modbus_packet_handle(uart_2.buff_received, uart_2.received_len);
+            if(modbus_packet_for_me(uart_2.buff_received, uart_2.received_len)){
+                uint16_t new_len = modbus_rtu_packet(uart_2.buff_received, uart_2.received_len);
+                uart_send(uart_2.buff_received, new_len);
+                uart_2.state &= ~UART_STATE_IN_HANDING;
+            }
             if(uart_2.state & UART_STATE_IN_HANDING){
                 dcts_packet_handle(uart_2.buff_received, uart_2.received_len);
             }
@@ -818,7 +823,7 @@ void uart_task(void const * argument){
                 if(i == MEAS_NUM - 1){
                     strncat(string,"\n",1);
                 }
-                uart_send(string,(uint16_t)strlen(string));
+                //uart_send(string,(uint16_t)strlen(string));
             }
         }else{
             tick++;

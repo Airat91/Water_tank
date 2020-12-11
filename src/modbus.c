@@ -73,6 +73,8 @@ u8 modbus_crc16_check(u8* pckt,u16 lenght){
     if (lenght < 3){
         return 0;
     }
+    uint16_t test_1 = modbus_crc16 (pckt, lenght-2);
+    uint16_t test_2 = *(u16*)(void*)(pckt + lenght - 2);
     if (modbus_crc16 (pckt, lenght-2) != *(u16*)(void*)(pckt + lenght - 2)) {
         return 0;
     }
@@ -139,13 +141,10 @@ u8 modbus_packet_for_me(u8* pckt,u16 lenght){
 u16 modbus_rtu_packet (u8* pckt,u16 len_in){
     u16 len_reply;
     u8 error, function;
-    u16 start_address = 0;
-    u16 regs_numm, num_bit;
+    u16 start_address, regs_numm, num_bit;
     len_reply = 0;
     error = 0;
     if (it_modbus_request_check(pckt, len_in)==1){
-        //dinamic_address_space_t * base_address=NULL;
-        int pool_id=-1;
         function = pckt[1];
         /*if (sofi.vars.mdb_revers){
             //replace 4 and 3 function if need
@@ -202,81 +201,50 @@ u16 modbus_rtu_packet (u8* pckt,u16 len_in){
             break;*/
         case 3:
             /*should read only regs*/
-            start_address += (u16)(pckt[2] << 8) + pckt[3];
+            start_address = (u16)(pckt[2] << 8) + pckt[3];
             regs_numm = (u16)(pckt[4] << 8) + pckt[5];
-            /* for dynamical address space
-            pool_id = modbus_dinamic_addr_check(start_address,function,regs_numm);
-            if (pool_id >= 0){
-                base_address = modbus_dinamic_addr_get(pool_id);
-                start_address -= base_address->address;
-            }else */
-            if (start_address >= SELF_MDB_ADDRESS_SPACE_START){
-                start_address -= SELF_MDB_ADDRESS_SPACE_START;
-            }else{
-                error = ILLEGAL_DATA_ADDRESS;
-            }
-            len_reply = (u8)(regs_numm << 1);
             if (regs_numm < 1) {
                 error = ILLEGAL_DATA_VALUE;
-            } else if(!error){
-
-                if (base_address == NULL){
-                    if (regs_get_buffer(start_address*2,(u8*)(pckt+3),regs_numm*2)==0) {
-                        htons_buff((u16 *)(void*)(pckt+3), (u8)regs_numm);
-                        pckt[2] = (u8)len_reply;
-                        len_reply += 5;
-                    } else {
-                        error = ILLEGAL_DATA_ADDRESS;
+            }else if(start_address > MEAS_NUM*2){
+                error = ILLEGAL_DATA_ADDRESS;
+            }else if(!error){
+                len_reply = (u8)(regs_numm << 1);
+                pckt[2] = (u8)len_reply;
+                dcts_mdb_t data = {0};
+                for(uint8_t i = 0; i < regs_numm/2; i++){
+                    data.f = dcts_meas[start_address/2 + i].value;
+                    for(uint8_t byte_nmb = 0; byte_nmb < 4; byte_nmb++){
+                        pckt[3+4*i+byte_nmb] = data.byte[byte_nmb];
                     }
-                }else{
-                    osMutexWait(user_regs_access_mutex, portMAX_DELAY );{
-                        memcpy((u8*)(pckt+3),base_address->data + start_address*2,regs_numm*2);
-                        htons_buff((u16 *)(void*)(pckt+3), (u8)regs_numm);
-                        pckt[2] = (u8)len_reply;
-                        len_reply += 5;
-                    }osMutexRelease(user_regs_access_mutex);
                 }
+                len_reply += 5;
             }
             break;
         case 4:
             /*read writable regs*/
-            start_address += (u16)(pckt[2] << 8) + pckt[3];
+            start_address = (u16)(pckt[2] << 8) + pckt[3];
             regs_numm = (u16)(pckt[4] << 8) + pckt[5];
-            pool_id = modbus_dinamic_addr_check(start_address, function, regs_numm);
-            if (pool_id >= 0){
-                base_address = modbus_dinamic_addr_get(pool_id);
-                start_address -= base_address->address;
-            }else if (start_address >= SELF_MDB_ADDRESS_SPACE_START){
-                start_address -= SELF_MDB_ADDRESS_SPACE_START;
-            }else{
-                error = ILLEGAL_DATA_ADDRESS;
-            }
-            len_reply = (u8)(regs_numm * 2);
             if (regs_numm < 1) {
-                error  = ILLEGAL_DATA_VALUE;
-            } else if(!error) {
-                if (base_address == NULL){
-                    if (regs_get_buffer(start_address*2,(u8*)(pckt+3),regs_numm*2)==0) {
-                        htons_buff((u16 *)(void*)(pckt+3), (u8)regs_numm);
-                        pckt[2] = (u8)len_reply;
-                        len_reply += 5;
-                    } else {
-                        error = ILLEGAL_DATA_ADDRESS;
+                error = ILLEGAL_DATA_VALUE;
+            }else if(start_address > MEAS_NUM*2){
+                error = ILLEGAL_DATA_ADDRESS;
+            }else if(!error){
+                len_reply = (u8)(regs_numm << 1);
+                pckt[2] = (u8)len_reply;
+                dcts_mdb_t data = {0};
+                for(uint8_t i = 0; i < regs_numm/2; i++){
+                    data.f = dcts_meas[start_address/2 + i].value;
+                    for(uint8_t byte_nmb = 0; byte_nmb < 4; byte_nmb++){
+                        pckt[3+4*i+byte_nmb] = (u8)data.byte[byte_nmb];
                     }
-                }else{
-                    osMutexWait(user_regs_access_mutex, portMAX_DELAY );{
-                        memcpy((u8*)(pckt+3),base_address->data + start_address*2,regs_numm*2);
-                        htons_buff((u16 *)(void*)(pckt+3), (u8)regs_numm);
-                        pckt[2] = (u8)len_reply;
-                        len_reply += 5;
-                    }osMutexRelease(user_regs_access_mutex);
                 }
+                len_reply += 5;
             }
             break;
-        case 5:
+        //case 5:
             /*write bit (coil) only for dinamic space coil to byte type
             in user space used one byte for one coil*/
-            {
+            /*{
                 u16 coil_number,status;
                 regs_access_t reg_temp;
                 coil_number= (u16)((u16)pckt[2] << 8) + (u16)pckt[3];
@@ -286,8 +254,9 @@ u16 modbus_rtu_packet (u8* pckt,u16 len_in){
                     base_address = modbus_dinamic_addr_get(pool_id);
                     if (base_address!=NULL){
                         coil_number -= base_address->address;
+                        */
                         /*for coil functions start address is byte address not mdb*/
-                        reg_temp.flag = U8_REGS_FLAG;
+                        /*reg_temp.flag = U8_REGS_FLAG;
                         if (!error) {
                             if(status == 0xff00){
                                 reg_temp.value.op_u8 = BIT(0);
@@ -295,23 +264,23 @@ u16 modbus_rtu_packet (u8* pckt,u16 len_in){
                                 reg_temp.value.op_u8 = 0;
                             }else{
                                 error = ILLEGAL_DATA_VALUE;
-                            }
+                            }*/
                             /*writing*/
-                            if (!error){
+                            /*if (!error){
                                 osMutexWait(user_regs_access_mutex, portMAX_DELAY );{
                                     memcpy(base_address->data + coil_number,&reg_temp.value.op_u8,1);
                                 }osMutexRelease(user_regs_access_mutex);
                             }
-                            len_reply = 8;
+                            len_reply = 8;*/
                             /*dont change first byte they will be in answear transaction*/
-                        }
+                        /*}
                     }
                 }
             }
             break;
-        case 6:
+        case 6:*/
             /*write one word*/
-            {
+            /*{
                 regs_access_t reg;
                 reg.flag = U16_REGS_FLAG;
                 start_address += ((u16)(pckt[2] << 8) + pckt[3]);
@@ -327,9 +296,9 @@ u16 modbus_rtu_packet (u8* pckt,u16 len_in){
                 if (!error){
                     reg.value.op_u16 = ((u16)(pckt[4] << 8) + pckt[5]);
                     len_reply = 8;
-                    if(base_address==NULL){
+                    if(base_address==NULL){*/
                         /*write self regs*/
-                        if (regs_set((start_address*2),reg)!=0) {
+                        /*if (regs_set((start_address*2),reg)!=0) {
                             error = ILLEGAL_DATA_ADDRESS;
                         }
                     }else{
@@ -340,10 +309,10 @@ u16 modbus_rtu_packet (u8* pckt,u16 len_in){
                 }
                 break;
             }
-        case 15:
+        case 15:*/
             /*write coils only for dinmaic space "coil to byte type"
             in user space used one byte for one coil*/
-        {
+        /*{
             u8 bytes_num;
             u16 coil_number;
             coil_number = (u16)(pckt[2] << 8) + pckt[3];		// 2-3 bit start
@@ -366,9 +335,9 @@ u16 modbus_rtu_packet (u8* pckt,u16 len_in){
                                     reg.value.op_u8 = BIT(0);
                                 }else{
                                     reg.value.op_u8 = 0;
-                                }
+                                }*/
                                 /*writing*/
-                                osMutexWait(user_regs_access_mutex, portMAX_DELAY );{
+                                /*osMutexWait(user_regs_access_mutex, portMAX_DELAY );{
                                     memcpy(base_address->data + coil_number + write_bit ,&reg.value.op_u8,1);
                                 }osMutexRelease(user_regs_access_mutex);
                                 write_bit++;
@@ -376,9 +345,9 @@ u16 modbus_rtu_packet (u8* pckt,u16 len_in){
                             }
                         }
                         if (!error) {
-                            len_reply = 8;
+                            len_reply = 8;*/
                             /*dont change first byte they will be in answear transaction*/
-                        }
+                        /*}
                     }
                 }else{
                     error = ILLEGAL_DATA_ADDRESS;
@@ -388,9 +357,9 @@ u16 modbus_rtu_packet (u8* pckt,u16 len_in){
             }
         }
         break;
-        case 16:
+        case 16:*/
             /*write words*/
-            start_address += ((pckt[2] << 8) + pckt[3]);
+            /*start_address += ((pckt[2] << 8) + pckt[3]);
             regs_numm = ((u16)(pckt[4] << 8) + pckt[5]);
             pool_id = modbus_dinamic_addr_check(start_address, MDB_HOLDING_REGS_RW, regs_numm);
             if (pool_id >= 0){
@@ -416,7 +385,7 @@ u16 modbus_rtu_packet (u8* pckt,u16 len_in){
                     len_reply = 8;
                 }
             }
-            break;
+            break;*/
         default:
             error = ILLEGAL_FUNCTION;
             break;
@@ -425,14 +394,13 @@ u16 modbus_rtu_packet (u8* pckt,u16 len_in){
             pckt[1] |= 0x80;
             pckt[2] = error;
             len_reply = 5;
-            led_os_error_on(MODBUS_ERROR_TIME_MS);
         }
         *((u16*)(void*)(&pckt[len_reply-2])) = modbus_crc16 (pckt, len_reply-2);
     }
     return len_reply;
 }
 u8 genenerate_error_packet(u8* packet,u8 error_code){
-    packet[0] = (u8)sofi.vars.mdb_addr;
+    packet[0] = (u8)dcts.dcts_address;
     packet[1] |=0x80;
     packet[2] = error_code;
     *(u16 *)(void*)(&packet[3]) = modbus_crc16 (packet, 3);
@@ -476,7 +444,7 @@ u8 it_modbus_simply_check(u8* pckt,u16 length){
 int it_modbus_request_check(u8* buff,u16 length){
     int result=0;
     u8 first,command;
-    SOFI_ASSERT("modbus check buff error", (buff!=NULL));
+    //SOFI_ASSERT("modbus check buff error", (buff!=NULL));
     if(length <= 256){
         first = 0;
         command = buff[first+1];
@@ -567,7 +535,7 @@ int it_modbus_request_check(u8* buff,u16 length){
 int it_modbus_responde_check(u8* buff,u16 length){
     int result=0;
     u8 first,command;
-    SOFI_ASSERT("modbus check buff error", (buff!=NULL));
+    //SOFI_ASSERT("modbus check buff error", (buff!=NULL));
     if (length<=256){
         first = 0;
         //address = buff[first];
@@ -639,7 +607,7 @@ int it_modbus_responde_check(u8* buff,u16 length){
  * @return 1 if checked
  * @ingroup modbus
  * */
-int it_modbus_tcp_full_check(u8* buff,u16 len){
+/*int it_modbus_tcp_full_check(u8* buff,u16 len){
     //add fake crc for it_modbus_full_check
     u8 temp_buff[256];
     memcpy(temp_buff,buff,len);
@@ -647,7 +615,7 @@ int it_modbus_tcp_full_check(u8* buff,u16 len){
                                                len-MODBUS_TCP_HEADER_SIZE);
     return (it_modbus_request_check(&temp_buff[MODBUS_TCP_HEADER_SIZE],\
                                  len-MODBUS_TCP_HEADER_SIZE+2)==1);
-}
+}*/
 
 /**
  * @brief make packet from parametrs
@@ -759,9 +727,9 @@ int modbus_make_packet (u8  slave_address,u8  function, u16 start_addr,
  * @return pointer to osPoolId
  * @ingroup modbus
  * */
-osPoolId modbus_bind_address_space(u32 mdb_or_coil_addr,u8* space,u32 * len){
+/*osPoolId modbus_bind_address_space(u32 mdb_or_coil_addr,u8* space,u32 * len){
     return modbus_bind_address_space_by_command(mdb_or_coil_addr,space,len,ALL_MDB_CMD);
-}
+}*/
 /**
  * @brief add address space for modbus
  * @param mdb_address modbus space
@@ -772,7 +740,7 @@ osPoolId modbus_bind_address_space(u32 mdb_or_coil_addr,u8* space,u32 * len){
  * @return pointer to osPoolId
  * @ingroup modbus
  * */
-osPoolId modbus_bind_address_space_by_command(u32 mdb_or_coil_addr,u8* space,u32 * len, u8 command){
+/*osPoolId modbus_bind_address_space_by_command(u32 mdb_or_coil_addr,u8* space,u32 * len, u8 command){
     if((modbus_dinamic_addr_check(mdb_or_coil_addr,command,(u16)*len) < 0) &&
             it_is_ram(space,*len)){
         dinamic_address_space_t * dinamic_address_space = NULL;
@@ -789,7 +757,7 @@ osPoolId modbus_bind_address_space_by_command(u32 mdb_or_coil_addr,u8* space,u32
         *len =0;
     }
     return dinamic_address;
-}
+}*/
 /**
  * @brief check if address in dinamic space
  * @param mdb_addr - address for checking
@@ -798,7 +766,7 @@ osPoolId modbus_bind_address_space_by_command(u32 mdb_or_coil_addr,u8* space,u32
  *          negative - if didt find
  * @ingroup modbus
  */
-int modbus_dinamic_addr_check(u32 mdb_or_coil_addr,u8 command,u16 len){
+/*int modbus_dinamic_addr_check(u32 mdb_or_coil_addr,u8 command,u16 len){
     int result = -1;
     if(dinamic_address!=0){
         for(u16 i=0;i<dinamic_address->pool_sz;i++){
@@ -815,7 +783,7 @@ int modbus_dinamic_addr_check(u32 mdb_or_coil_addr,u8 command,u16 len){
         }
     }
     return result;
-}
+}*/
 /**
  * @brief calc new address and pointer for reading and writing address
  * @param reg_address - pionter will rewrite data to
@@ -823,7 +791,7 @@ int modbus_dinamic_addr_check(u32 mdb_or_coil_addr,u8 command,u16 len){
  * @ingroup modbus
  * @todo add description
  */
-void * modbus_dinamic_addr_get(int pool_id){
+/*void * modbus_dinamic_addr_get(int pool_id){
     dinamic_address_space_t * res = NULL;
     if(dinamic_address!=0&&(pool_id>=0)){
         dinamic_address_space_t * dinamic_address_space;
@@ -833,4 +801,4 @@ void * modbus_dinamic_addr_get(int pool_id){
         }
     }
     return res;
-}
+}*/
