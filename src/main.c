@@ -616,12 +616,14 @@ static void info_print (void){
     sprintf(string, "Имя: %s",dcts.dcts_name_cyr);
     LCD_set_xy(2,40);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-
     sprintf(string, "Тип: %d",dcts.dcts_id);
     LCD_set_xy(2,30);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    sprintf(string, "Версия: %s",dcts.dcts_ver);
+    sprintf(string, "Адрес: %d",dcts.dcts_address);
     LCD_set_xy(2,20);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    sprintf(string, "Версия: %s",dcts.dcts_ver);
+    LCD_set_xy(2,10);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
 
     sprintf(string, "<назад");

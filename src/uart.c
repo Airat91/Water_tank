@@ -212,8 +212,13 @@ int uart_send(const uint8_t * buff,uint16_t len){
     return result;
 }
 
+/**
+ * @brief UART interrupt handle
+ * @return  0 - OK
+ * @ingroup uart
+ */
 int uart_handle(void){
-
+    int result = 0;
     uint32_t dd;
     uint32_t status;
     dd=0;
@@ -276,4 +281,5 @@ int uart_handle(void){
         dd=huart2.Instance->SR;
         dd=huart2.Instance->DR;
     }
+    return result;
 }
