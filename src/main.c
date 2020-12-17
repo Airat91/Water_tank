@@ -171,7 +171,7 @@ int main(void){
     //controlTaskHandle = osThreadCreate(osThread(control_task), NULL);
 
     osThreadDef(display_task, display_task, osPriorityNormal, 0, 256);
-    displayTaskHandle = osThreadCreate(osThread(display_task), NULL);
+    //displayTaskHandle = osThreadCreate(osThread(display_task), NULL);
 
     osThreadDef(adc_task, adc_task, osPriorityNormal, 0, 512);
     adcTaskHandle = osThreadCreate(osThread(adc_task), NULL);
@@ -792,10 +792,16 @@ void am2302_task (void const * argument){
 #define uart_task_period 5
 void uart_task(void const * argument){
     (void)argument;
-    uart_init(115200, 8, 1, PARITY_NONE, 10000);
+    uart_init(56000, 8, 1, PARITY_NONE, 10000);
     uint16_t tick = 0;
     char string[100];
-    //memcpy(string, "Test1234567890\n", 15);
+    GPIO_InitTypeDef GPIO_InitStruct;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Pin = LED_PIN;
+    HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET);
+    HAL_GPIO_Init (LED_PORT, &GPIO_InitStruct);
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
         if((uart_2.state & UART_STATE_RECIEVE)&&\
@@ -814,10 +820,17 @@ void uart_task(void const * argument){
             }
             if(uart_2.state & UART_STATE_IN_HANDING){
                 dcts_packet_handle(uart_2.buff_received, uart_2.received_len);
+            }else{
+                uart_2.state &= ~UART_STATE_IN_HANDING;
             }
         }
-        if(tick == 5000/uart_task_period){
+        if(uart_2.err_cnt > 100){
+            uart_deinit();
+            uart_init(56000, 8, 1, PARITY_NONE, 10000);
+        }
+        if(tick == 1000/uart_task_period){
             tick = 0;
+            HAL_GPIO_TogglePin(LED_PORT,LED_PIN);
             for(uint8_t i = 0; i < MEAS_NUM; i++){
                 sprintf(string, "%s:\t%.1f(%s)\n",dcts_meas[i].name,(double)dcts_meas[i].value,dcts_meas[i].unit);
                 if(i == MEAS_NUM - 1){

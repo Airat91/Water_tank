@@ -23,21 +23,7 @@ uint8_t uart_buff_out[UART_BUFF_MAX_LEN];
 uint8_t uart_buff_received[UART_BUFF_MAX_LEN];
 uint8_t uart_buff_in[UART_BUFF_MAX_LEN];
 UART_HandleTypeDef huart2;
-uart_stream_t uart_2 = {
-    .out_len = 0,
-    .out_ptr = 0,
-    .in_len = 0,
-    .in_ptr = 0,
-    .received_len = 0,
-    .max_len = UART_BUFF_MAX_LEN,
-    .err_cnt = 0,
-    .timeout = 0,
-    .timeout_last = 0,
-    .state = UART_STATE_ERASE,
-    .buff_out = uart_buff_out,
-    .buff_in = uart_buff_in,
-    .buff_received = uart_buff_received,
-};
+uart_stream_t uart_2 = {0};
 
 /*========== FUNCTIONS ==========*/
 
@@ -59,6 +45,19 @@ uart_stream_t uart_2 = {
  */
 int uart_init(uint32_t bit_rate,uint8_t word_len,uint8_t stop_bit_number,parity_t parity,uint16_t rx_delay){
     int result = 0;
+    uart_2.out_len = 0;
+    uart_2.out_ptr = 0;
+    uart_2.in_len = 0;
+    uart_2.in_ptr = 0;
+    uart_2.received_len = 0;
+    uart_2.max_len = UART_BUFF_MAX_LEN;
+    uart_2.err_cnt = 0;
+    uart_2.timeout = 0;
+    uart_2.timeout_last = 0;
+    uart_2.state = UART_STATE_ERASE;
+    uart_2.buff_out = uart_buff_out;
+    uart_2.buff_in = uart_buff_in;
+    uart_2.buff_received = uart_buff_received;
     __HAL_RCC_USART2_CLK_ENABLE();
     uart_gpio_init();
 
@@ -224,7 +223,7 @@ int uart_handle(void){
     dd=0;
     status = huart2.Instance->SR;
     // receive mode
-    if(status & USART_SR_RXNE){
+    if((status & USART_SR_RXNE)&&!(uart_2.state &= UART_STATE_SENDING)){
         huart2.Instance->SR &= ~(USART_SR_RXNE);
         dd=huart2.Instance->DR;
         uart_2.state |= UART_STATE_RECIEVE;
@@ -249,8 +248,9 @@ int uart_handle(void){
     // transmit mode
     if((status & USART_SR_TXE) ){
         if(!(uart_2.state & UART_STATE_IS_LAST_BYTE)){
-            uart_2.out_ptr = uart_2.out_ptr<uart_2.max_len?\
-                        uart_2.out_ptr:uart_2.max_len-1;
+            if(uart_2.out_ptr>=uart_2.max_len){
+                uart_2.out_ptr = uart_2.max_len-1;
+            }
             if(uart_2.out_ptr == uart_2.out_len-1){
                 huart2.Instance->CR1 &= ~USART_CR1_TXEIE;
                 huart2.Instance->CR1 |= USART_CR1_TCIE;
@@ -261,13 +261,18 @@ int uart_handle(void){
                 huart2.Instance->DR=uart_2.buff_out[uart_2.out_ptr];
             }
             uart_2.out_ptr++;
+            if(uart_2.out_ptr > uart_2.out_len){
+                uart_2.err_cnt++;
+            }
         }else if(status & USART_SR_TC){
             // end of transmit
             huart2.Instance->CR1 &= ~USART_CR1_TXEIE;
             huart2.Instance->CR1 &= ~USART_CR1_TCIE;
             huart2.Instance->SR &=~USART_SR_TC;
             uart_2.in_ptr = 0;
+            uart_2.out_ptr = 0;
             huart2.Instance->CR1 |= USART_CR1_RXNEIE;   // ready to input messages
+            huart2.Instance->SR &= ~(USART_SR_RXNE);
             HAL_GPIO_WritePin(RS_485_DE_PORT, RS_485_DE_PIN, GPIO_PIN_RESET);
             uart_2.state |= UART_STATE_SENDED;
             uart_2.state &=~UART_STATE_IS_LAST_BYTE;

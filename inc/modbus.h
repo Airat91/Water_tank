@@ -62,6 +62,7 @@ typedef struct {
 
 typedef union {
     float f;
+    int16_t word[2];
     u8 byte[4];
 }dcts_mdb_t;
 
