@@ -114,6 +114,7 @@ static void save_to_bkp(u8 bkp_num, u8 var);
 static void save_float_to_bkp(u8 bkp_num, float var);
 static u8 read_bkp(u8 bkp_num);
 static float read_float_bkp(u8 bkp_num, u8 sign);
+static void led_lin_init(void);
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
@@ -156,6 +157,7 @@ int main(void){
     tim2_init();
     dcts_init();
     restore_params();
+    led_lin_init();
     /*
     MX_RTC_Init();
     MX_ADC1_Init();
@@ -170,22 +172,22 @@ int main(void){
     //osThreadDef(control_task, control_task, osPriorityNormal, 0, 364);
     //controlTaskHandle = osThreadCreate(osThread(control_task), NULL);
 
-    osThreadDef(display_task, display_task, osPriorityNormal, 0, 256);
-    //displayTaskHandle = osThreadCreate(osThread(display_task), NULL);
+    osThreadDef(display_task, display_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE*4);
+    displayTaskHandle = osThreadCreate(osThread(display_task), NULL);
 
-    osThreadDef(adc_task, adc_task, osPriorityNormal, 0, 512);
+    osThreadDef(adc_task, adc_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE*2);
     adcTaskHandle = osThreadCreate(osThread(adc_task), NULL);
 
-    osThreadDef(buttons_task, buttons_task, osPriorityNormal, 0, 128);
+    osThreadDef(buttons_task, buttons_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);
     buttonsTaskHandle = osThreadCreate(osThread(buttons_task), NULL);
 
-    osThreadDef(am2302_task, am2302_task, osPriorityNormal, 0, 128);
+    osThreadDef(am2302_task, am2302_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);
     am2302TaskHandle = osThreadCreate(osThread(am2302_task), NULL);
 
-    osThreadDef(navigation_task, navigation_task, osPriorityNormal, 0, 128);
+    osThreadDef(navigation_task, navigation_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);
     navigationtTaskHandle = osThreadCreate(osThread(navigation_task), NULL);
 
-    osThreadDef(uart_task, uart_task, osPriorityNormal, 0, 512);
+    osThreadDef(uart_task, uart_task, osPriorityHigh, 0, configMINIMAL_STACK_SIZE*4);
     uartTaskHandle = osThreadCreate(osThread(uart_task), NULL);
 
 
@@ -756,6 +758,7 @@ void am2302_task (void const * argument){
     am2302_data_t am2302 = {0};
     while(1){
         am2302 = am2302_get(2);
+        taskENTER_CRITICAL();
         if(am2302.error == 1){
             dcts_meas[PREDBANNIK_HUM].valid = FALSE;
             dcts_meas[PREDBANNIK_TMPR].valid = FALSE;
@@ -765,8 +768,10 @@ void am2302_task (void const * argument){
             dcts_meas[PREDBANNIK_TMPR].value = (float)am2302.tmpr/10;
             dcts_meas[PREDBANNIK_TMPR].valid = TRUE;
         }
+        taskEXIT_CRITICAL();
 
         am2302 = am2302_get(1);
+        taskENTER_CRITICAL();
         if(am2302.error == 1){
             dcts_meas[MOYKA_HUM].valid = FALSE;
             dcts_meas[MOYKA_TMPR].valid = FALSE;
@@ -776,14 +781,17 @@ void am2302_task (void const * argument){
             dcts_meas[MOYKA_TMPR].value = (float)am2302.tmpr/10;
             dcts_meas[MOYKA_TMPR].valid = TRUE;
         }
+        taskEXIT_CRITICAL();
 
         am2302 = am2302_get(0);
+        taskENTER_CRITICAL();
         if(am2302.error == 1){
             dcts_meas[PARILKA_TMPR].valid = FALSE;
         }else{
             dcts_meas[PARILKA_TMPR].value = (float)am2302.tmpr/10;
             dcts_meas[PARILKA_TMPR].valid = TRUE;
         }
+        taskEXIT_CRITICAL();
 
         osDelayUntil(&last_wake_time, am2302_task_period);
     }
@@ -795,13 +803,6 @@ void uart_task(void const * argument){
     uart_init(56000, 8, 1, PARITY_NONE, 10000);
     uint16_t tick = 0;
     char string[100];
-    GPIO_InitTypeDef GPIO_InitStruct;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.Pin = LED_PIN;
-    HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET);
-    HAL_GPIO_Init (LED_PORT, &GPIO_InitStruct);
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
         if((uart_2.state & UART_STATE_RECIEVE)&&\
@@ -824,7 +825,7 @@ void uart_task(void const * argument){
                 uart_2.state &= ~UART_STATE_IN_HANDING;
             }
         }
-        if(uart_2.err_cnt > 100){
+        if(uart_2.err_cnt > 10){
             uart_deinit();
             uart_init(56000, 8, 1, PARITY_NONE, 10000);
         }
@@ -1095,6 +1096,17 @@ static float read_float_bkp(u8 bkp_num, u8 sign){
         sprintf(buf, "%d", data);
     }
     return atoff(buf);
+}
+
+static void led_lin_init(void){
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    GPIO_InitTypeDef GPIO_InitStruct;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Pin = LED_PIN;
+    HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET);
+    HAL_GPIO_Init (LED_PORT, &GPIO_InitStruct);
 }
 
 #ifdef  USE_FULL_ASSERT

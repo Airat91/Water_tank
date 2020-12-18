@@ -49,17 +49,17 @@ int LCD_init (void){
     HAL_Delay(2);
     LCD_send(LCD_RW_WRITE, LCD_RS_COMM, 0x36);
 
-    LCD_clr();
+    /*LCD_clr();
     LCD_backlight_on();
-    /*LCD_set_xy(0,38);
+    LCD_set_xy(0,38);
     LCD_print("    LCD", &Font_7x10, LCD_COLOR_BLACK);
     LCD_set_xy(0,20);
     LCD_print("initialised", &Font_7x10, LCD_COLOR_BLACK);
     LCD_set_xy(5,2);
     LCD_print("successful", &Font_7x10, LCD_COLOR_BLACK);
     LCD_update();
-    HAL_Delay(2000);
-    LCD_clr();*/
+    HAL_Delay(2000);*/
+    LCD_clr();
     LCD_update();
     return result;
 }
@@ -161,6 +161,7 @@ void LCD_gpio_deinit (void){
  * @ingroup LCD
  */
 void LCD_send(LCD_RW_t rw, LCD_RS_t rs, uint8_t data){
+    uint8_t error = 0;
     uint8_t array[3] = {0xF8,0x00,0x00};
     array[0] |= (uint8_t)rw << 2;
     array[0] |= (uint8_t)rs << 1;
@@ -171,8 +172,11 @@ void LCD_send(LCD_RW_t rw, LCD_RS_t rs, uint8_t data){
     lcd_spi.Instance = LCD_SPI;
 
     HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS_PIN,GPIO_PIN_SET);
-    HAL_SPI_Transmit(&lcd_spi,&array[0],3,100);
-    while(((uint16_t)_lcd_spi->SR & SPI_SR_BSY)){
+    if(HAL_SPI_Transmit(&lcd_spi,&array[0],3,100) == HAL_OK){
+        while(((uint16_t)_lcd_spi->SR & SPI_SR_BSY)){
+        }
+    }else{
+        error++;
     }
     HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS_PIN,GPIO_PIN_RESET);
 }

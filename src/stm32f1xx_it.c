@@ -76,10 +76,22 @@ void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
 
+    uint32_t time = us_tim_get_value();
+    uint32_t cur = time;
+    uint16_t tick = 0;
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {
     /* USER CODE BEGIN W1_HardFault_IRQn 0 */
+      HAL_GPIO_TogglePin(LED_PORT,LED_PIN);
+      tick++;
+      time = us_tim_get_value();
+      while((cur - time) < 250000){
+        cur = us_tim_get_value();
+      }
+      if(tick > 240){
+          NVIC_SystemReset();
+      }
     /* USER CODE END W1_HardFault_IRQn 0 */
   }
   /* USER CODE BEGIN HardFault_IRQn 1 */

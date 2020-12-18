@@ -115,7 +115,7 @@ int uart_init(uint32_t bit_rate,uint8_t word_len,uint8_t stop_bit_number,parity_
     }
 
     huart2.Instance->CR1 |= USART_CR1_RXNEIE;   // ready to input messages
-
+    uart_2.state |= UART_STATE_ENABLED;
     NVIC_ClearPendingIRQ(USART2_IRQn);
     HAL_NVIC_EnableIRQ(USART2_IRQn);
 

@@ -174,6 +174,7 @@ void adc_task(void const * argument){
         }
 
         temp = (float)pwr_sum/ADC_BUF_SIZE;
+        taskENTER_CRITICAL();
         dcts.dcts_pwr = temp/ADC_MAX*ADC_VREF*PWR_K;
 
         dcts_meas[WTR_LVL_ADC].value = (float)wtr_lev_sum/ADC_BUF_SIZE;
@@ -186,6 +187,7 @@ void adc_task(void const * argument){
 
         dcts_meas[VREF_ADC].value = (float)vref_sum/ADC_BUF_SIZE;
         dcts_meas[VREF_V].value = dcts_meas[VREF_ADC].value*ADC_VREF/ADC_MAX;
+        taskEXIT_CRITICAL();
 
         tick++;
         if(tick >= ADC_BUF_SIZE){
