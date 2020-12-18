@@ -43,7 +43,7 @@ uart_stream_t uart_2 = {0};
  *
  * Init UART's GPIOs, config UART params and eanble UART_IRQ
  */
-int uart_init(uint32_t bit_rate,uint8_t word_len,uint8_t stop_bit_number,parity_t parity,uint16_t rx_delay){
+int uart_init(uart_bitrate_t bit_rate,uint8_t word_len,uint8_t stop_bit_number,parity_t parity,uint16_t rx_delay){
     int result = 0;
     uart_2.out_len = 0;
     uart_2.out_ptr = 0;
@@ -64,7 +64,7 @@ int uart_init(uint32_t bit_rate,uint8_t word_len,uint8_t stop_bit_number,parity_
     uart_2.timeout = rx_delay;
 
     huart2.Instance = USART2;
-    huart2.Init.BaudRate = bit_rate;
+    huart2.Init.BaudRate = bit_rate*100;
     switch (word_len) {
     case 8:
         huart2.Init.WordLength = UART_WORDLENGTH_8B;

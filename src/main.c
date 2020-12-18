@@ -121,8 +121,8 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 uint32_t us_cnt_H = 0;
 navigation_t navigation_style = MENU_NAVIGATION;
 edit_val_t edit_val = {0};
-
-uint16_t lvl_calib_table[6] = {
+saved_to_flash_t config;
+const uint16_t def_lvl_calib_table[6] = {
     375,
     738,
     1102,
@@ -130,7 +130,7 @@ uint16_t lvl_calib_table[6] = {
     1829,
     2193,
 };
-uint16_t tmpr_calib_table[11] = {
+const uint16_t def_tmpr_calib_table[11] = {
     3137,
     2727,
     2275,
@@ -800,7 +800,7 @@ void am2302_task (void const * argument){
 #define uart_task_period 5
 void uart_task(void const * argument){
     (void)argument;
-    uart_init(56000, 8, 1, PARITY_NONE, 10000);
+    uart_init(config.params.mdb_bitrate, 8, 1, PARITY_NONE, 10000);
     uint16_t tick = 0;
     char string[100];
     uint32_t last_wake_time = osKernelSysTick();
@@ -827,7 +827,7 @@ void uart_task(void const * argument){
         }
         if(uart_2.err_cnt > 10){
             uart_deinit();
-            uart_init(56000, 8, 1, PARITY_NONE, 10000);
+            uart_init(config.params.mdb_bitrate, 8, 1, PARITY_NONE, 10000);
         }
         if(tick == 1000/uart_task_period){
             tick = 0;
@@ -968,12 +968,14 @@ static void save_params(void){
         HAL_FLASH_Lock();
         area_cnt = 0;
     }
-    for(uint8_t i = 0; i < 6; i ++){
-        save_to_flash(area_cnt, i, &lvl_calib_table[i]);
+    for(uint8_t i = 0; i < SAVED_PARAMS_SIZE; i ++){
+        save_to_flash(area_cnt, i, &config.word[i]);
     }
-    for(uint8_t i = 0; i < 11; i ++){
-        save_to_flash(area_cnt, i+6, &tmpr_calib_table[i]);
-    }
+    // rewrite new params
+    dcts.dcts_address = (uint8_t)config.params.mdb_address;
+    uart_deinit();
+    uart_init(config.params.mdb_bitrate, 8, 1, PARITY_NONE, 10000);
+    //delay for show message
     osDelay(2000);
     menuChange(current_menu);
 }
@@ -990,14 +992,16 @@ static void restore_params(void){
         }
         uint16_t *addr;
         addr = (uint32_t)(FLASH_SAVE_PAGE_ADDRESS+ area_cnt*SAVE_AREA_SIZE);
-        for(uint8_t i = 0; i < 6; i++){
-            lvl_calib_table[i] = *addr;
+        for(uint8_t i = 0; i < SAVED_PARAMS_SIZE; i++){
+            config.word[i] = *addr;
             addr++;
         }
-        for(uint8_t i = 0; i < 11; i++){
-            tmpr_calib_table[i] = *addr;
-            addr++;
-        }
+    }else{
+        //init default values if saved params not found
+        config.params.mdb_address = dcts.dcts_address;
+        config.params.mdb_bitrate = BITRATE_56000;
+        memcpy(config.params.lvl_calib_table, def_lvl_calib_table, 6);
+        memcpy(config.params.tmpr_calib_table, def_tmpr_calib_table, 11);
     }
 }
 

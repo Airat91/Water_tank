@@ -31,6 +31,23 @@ typedef enum {
     PARITY_ODD,
 }parity_t;
 
+typedef enum {
+    BITRATE_600 = 6,
+    BITRATE_1200 = 12,
+    BITRATE_2400 = 24,
+    BITRATE_4800 = 48,
+    BITRATE_9600 = 96,
+    BITRATE_14400 = 144,
+    BITRATE_19200 = 192,
+    BITRATE_28800 = 288,
+    BITRATE_38400 = 384,
+    BITRATE_56000 = 560,
+    BITRATE_57600 = 576,
+    BITRATE_115200 = 1152,
+    BITRATE_128000 = 1280,
+    BITRATE_256000 = 2560,
+}uart_bitrate_t;
+
 typedef struct {
     uint16_t out_len;
     uint16_t out_ptr;
@@ -57,7 +74,7 @@ extern UART_HandleTypeDef huart2;
 
 /*========== FUNCTION PROTOTYPES ==========*/
 
-int uart_init(uint32_t bit_rate,uint8_t word_len,uint8_t stop_bit_number,parity_t parity,uint16_t rx_delay);
+int uart_init(uart_bitrate_t bit_rate,uint8_t word_len,uint8_t stop_bit_number,parity_t parity,uint16_t rx_delay);
 void uart_deinit(void);
 void uart_gpio_init(void);
 void uart_gpio_deinit(void);

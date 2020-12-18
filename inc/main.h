@@ -55,6 +55,9 @@
 #include "stm32f1xx_hal.h"
 #include "stdlib.h"
 #include "cmsis_os.h"
+#include "uart.h"
+#include "flash.h"
+
 
 #define AIR_PORT GPIOA
 #define AIR_PIN  LL_GPIO_PIN_7
@@ -79,6 +82,11 @@
 #define STEP_OUT2_2 LL_GPIO_PIN_12
 #define STEP_PORT GPIOB
 
+#define SAVED_PARAMS_SIZE 19
+
+#if(SAVED_PARAMS_SIZE > SAVE_AREA_SIZE)
+    #error(SAVED_PARAMS_SIZE > SAVE_AREA_SIZE)
+#endif
 
 #define TIME_YIELD_THRESHOLD 100
 
@@ -111,6 +119,16 @@ typedef struct{
     uint8_t digit_max;
 }edit_val_t;
 
+typedef union{
+    struct{
+        uint16_t lvl_calib_table[6];
+        uint16_t tmpr_calib_table[11];
+        uint16_t mdb_address;
+        uint16_t mdb_bitrate;
+    }params;
+    uint16_t word[SAVED_PARAMS_SIZE];
+}saved_to_flash_t;
+
 void _Error_Handler(char *, int);
 extern uint32_t us_cnt_H;
 extern navigation_t navigation_style;
@@ -129,6 +147,7 @@ extern osThreadId adcTaskHandle;
 extern osThreadId am2302TaskHandle;
 extern osThreadId navigationtTaskHandle;
 extern osThreadId uartTaskHandle;
+extern saved_to_flash_t config;
 
 void display_task(void const * argument);
 void am2302_task(void const * argument);
