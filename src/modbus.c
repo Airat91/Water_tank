@@ -2,6 +2,7 @@
 #include <string.h>
 #include "modbus.h"
 #include "dcts.h"
+#include "main.h"
 
 /**
   * @defgroup modbus
@@ -16,6 +17,126 @@
     "06 - Write Single Register":     ('6', 'req_output',    1, "WORD", 16, "Q", "W", "Holding Register"),
    ?"15 - Write Multiple Coils":     ('15', 'req_output', 1968, "BOOL",  1, "Q", "X", "Coil"),
     "16 - Write Multiple Registers": ('16', 'req_output',  123, "WORD", 16, "Q", "W", "Holding Register")}
+*/
+
+/*  DCTS params in ModBus area:
+
+    30000 - DCTS.dcts_name          (char)*2
+    30100 - DCTS.dcts_name_cyr      (char)*2
+    30200 - DCTS.dcts_ver           (char)*2
+    30300 -                         (char)*2
+    30400 -                         (char)*2
+    30500 -                         (char)*2
+    30600 - DCTS.dcts_addr          (uint8_t)
+    30601 - DCTS.dcts_id            (uint8_t)
+    ...
+    30610 - DCTS.meas_num           (uint8_t)
+    30611 - DCTS.rele_num           (uint8_t)
+    30612 - DCTS.act_num            (uint8_t)
+    30613 - DCTS.alrm_num           (uint8_t)
+    30613 - DCTS.alrm_num           (uint8_t)
+    ...
+    30700 -                         (uint8_t)
+    30800 -                         (uint8_t)
+    30900 -                         (uint8_t)
+
+    3100X - dcts_meas[X].name       (char)*2
+    3110X - dcts_meas[X].name_cyr   (char)*2
+    3120X - dcts_meas[X].unit       (char)*2
+    3130X - dcts_meas[X].unit_cyr   (char)*2
+    3140X -                         (char)*2
+    3150X -                         (char)*2
+    3160X -                         (char)*2
+    3170X -                         (char)*2
+    3180X -                         (char)*2
+    3190X -                         (char)*2
+
+    3200X - dcts_rele[X].name       (char)*2
+    3210X - dcts_rele[X].name_cyr   (char)*2
+    3220X -                         (char)*2
+    3230X -                         (char)*2
+    3240X -                         (char)*2
+    3250X -                         (char)*2
+    3260X -                         (char)*2
+    3270X -                         (char)*2
+    3280X -                         (char)*2
+    3290X -                         (char)*2
+
+    3300X - dcts_act[X].name        (char)*2
+    3310X - dcts_act[X].name_cyr    (char)*2
+    3320X - dcts_act[X].unit        (char)*2
+    3330X - dcts_act[X].unit_cyr    (char)*2
+    3340X -                         (char)*2
+    3350X -                         (char)*2
+    3360X -                         (char)*2
+    3370X -                         (char)*2
+    3380X -                         (char)*2
+    3390X -                         (char)*2
+
+    3400X - dcts_alrm[X].name       (char)*2
+    3410X - dcts_alrm[X].name_cyr   (char)*2
+    3420X -                         (char)*2
+    3430X -                         (char)*2
+    3440X -                         (char)*2
+    3450X -                         (char)*2
+    3460X -                         (char)*2
+    3470X -                         (char)*2
+    3480X -                         (char)*2
+    3490X -                         (char)*2
+
+    40000 - DCTS.dcts_pwr           (uint16_t)(float*100.0f)
+
+    40300 - DCTS.rtc.day            (uint8_t)
+    40301 - DCTS.rtc.month          (uint8_t)
+    40302 - DCTS.rtc.year           (uint16_t)
+    40303 - DCTS.rtc.weekday        (uint8_t)
+    40304 - DCTS.rtc.hour           (uint8_t)
+    40305 - DCTS.rtc.minute         (uint8_t)
+    40306 - DCTS.rtc.second         (uint8_t)
+
+    4100X - dcts_meas[X].value              (uint16_t)(float*100.0f)
+    4110X -                                 (uint16_t)(float*100.0f)
+    4120X -                                 (uint16_t)(float*100.0f)
+    4130X - dcts_meas[X].valid              (uint8_t)
+    4140X -                                 (uint8_t)
+    4150X -                                 (uint8_t)
+    4160X -                                 (uint8_t)
+    4170X -                                 (uint8_t)
+    4180X -                                 (uint8_t)
+    4190X -                                 (uint8_t)
+
+    4200X -                                 (uint16_t)(float*100.0f)
+    4210X -                                 (uint16_t)(float*100.0f)
+    4220X -                                 (uint16_t)(float*100.0f)
+    4230X - dcts_rele[X].state.control      (uint8_t)
+    4240X - dcts_rele[X].state.status       (uint8_t)
+    4250X - dcts_rele[X].state.short_cir    (uint8_t)
+    4260X - dcts_rele[X].state.fall         (uint8_t)
+    4270X -                                 (uint8_t)
+    4280X -                                 (uint8_t)
+    4290X -                                 (uint8_t)
+
+    4300X - dcts_act[X].set_value           (uint16_t)(float*100.0f)
+    4310X - dcts_act[X].meas_value          (uint16_t)(float*100.0f)
+    4320X -                                 (uint16_t)(float*100.0f)
+    4330X - dcts_act[X].state.control       (uint8_t)
+    4340X - dcts_act[X].state.pin_state     (uint8_t)
+    4350X - dcts_act[X].state.short_cir     (uint8_t)
+    4360X - dcts_act[X].state.fall          (uint8_t)
+    4370X -                                 (uint8_t)
+    4380X -                                 (uint8_t)
+    4390X -                                 (uint8_t)
+
+    4400X -                                 (uint16_t)(float*100.0f)
+    4410X -                                 (uint16_t)(float*100.0f)
+    4420X -                                 (uint16_t)(float*100.0f)
+    4430X - dcts_alrm[X].time.hour          (uint8_t)
+    4440X - dcts_alrm[X].time.minute        (uint8_t)
+    4450X - dcts_alrm[X].time.second        (uint8_t)
+    4460X - dcts_alrm[X].enable             (uint8_t)
+    4470X -                                 (uint8_t)
+    4480X -                                 (uint8_t)
+    4490X -                                 (uint8_t)
 */
 
 /*========= GLOBAL VARIABLES ==========*/
@@ -91,7 +212,7 @@ u8 modbus_crc16_check(u8* pckt,u16 lenght){
  * */
 u8 modbus_packet_for_me(u8* pckt,u16 lenght){
     if (lenght){
-        if ((pckt[0] != dcts.dcts_address)  &&
+        if ((pckt[0] != config.params.mdb_address)  &&
             (pckt[0] != MODBUS_BROADCAST_ADDRESS)){
             return 0;
         }else{
@@ -101,28 +222,6 @@ u8 modbus_packet_for_me(u8* pckt,u16 lenght){
         return 0;
     }
 }
-
-/**
- * @brief modbus_tcp_packet
- * @param pckt - pointer to counted buffer
- * @param len - length incoming packet
- * @return length reply packet
- */
-/*u16 modbus_tcp_packet (u8* pckt, u16 len){
-    u16 reply_len;
-    //add fake crc for modbus_rtu_packet
-    *(u16*)(void*)(&pckt[len]) = modbus_crc16((u8*)(pckt+MODBUS_TCP_HEADER_SIZE),\
-                                        len-MODBUS_TCP_HEADER_SIZE);
-    reply_len = modbus_rtu_packet(&pckt[MODBUS_TCP_HEADER_SIZE],\
-                                  len-MODBUS_TCP_HEADER_SIZE+2);
-    if(reply_len>4){
-        reply_len -= 2;//menos crc
-        pckt[4] = (u8)(reply_len>>8);//to header mdb_tcp
-        pckt[5] = (u8)(reply_len);//to header mdb_tcp
-        reply_len = reply_len+MODBUS_TCP_HEADER_SIZE;//mdb_tcp header
-    }
-    return reply_len;
-}*/
 
 /**
  * @brief
@@ -146,15 +245,6 @@ u16 modbus_rtu_packet (u8* pckt,u16 len_in){
     error = 0;
     if (it_modbus_request_check(pckt, len_in)==1){
         function = pckt[1];
-        /*if (sofi.vars.mdb_revers){
-            //replace 4 and 3 function if need
-            function = ((function == 3)?4:(function == 4?3:function));
-        }
-        if (sofi.vars.mdb_shift){    //for 3,4, 6, 16
-            start_address=1;
-        }else{
-            start_address=0;
-        }*/
         switch (function) {
         /*case 0:
         case 1:
@@ -412,7 +502,7 @@ u16 modbus_rtu_packet (u8* pckt,u16 len_in){
     return len_reply;
 }
 u8 genenerate_error_packet(u8* packet,u8 error_code){
-    packet[0] = (u8)dcts.dcts_address;
+    packet[0] = (u8)config.params.mdb_address;
     packet[1] |=0x80;
     packet[2] = error_code;
     *(u16 *)(void*)(&packet[3]) = modbus_crc16 (packet, 3);
@@ -613,21 +703,6 @@ int it_modbus_responde_check(u8* buff,u16 length){
     }
     return result;
 }
-/**
- * @brief verbose check packet for modbus, all used function
- * TODO!!! add asserts for buff and length
- * @return 1 if checked
- * @ingroup modbus
- * */
-/*int it_modbus_tcp_full_check(u8* buff,u16 len){
-    //add fake crc for it_modbus_full_check
-    u8 temp_buff[256];
-    memcpy(temp_buff,buff,len);
-    *(u16*)(void*)(&temp_buff[len])=modbus_crc16((u8*)(temp_buff+MODBUS_TCP_HEADER_SIZE),\
-                                               len-MODBUS_TCP_HEADER_SIZE);
-    return (it_modbus_request_check(&temp_buff[MODBUS_TCP_HEADER_SIZE],\
-                                 len-MODBUS_TCP_HEADER_SIZE+2)==1);
-}*/
 
 /**
  * @brief make packet from parametrs
@@ -731,86 +806,3 @@ int modbus_make_packet (u8  slave_address,u8  function, u16 start_addr,
     }
     return byte;
 }
-/**
- * @brief add address space for modbus
- * @param mdb_address modbus space
- * @param space pointer for bring  to modbus space
- * @param len pointer to size space, will zero if mismatch occur
- * @return pointer to osPoolId
- * @ingroup modbus
- * */
-/*osPoolId modbus_bind_address_space(u32 mdb_or_coil_addr,u8* space,u32 * len){
-    return modbus_bind_address_space_by_command(mdb_or_coil_addr,space,len,ALL_MDB_CMD);
-}*/
-/**
- * @brief add address space for modbus
- * @param mdb_address modbus space
- * @param space pointer for bring  to modbus space
- * @param len pointer to size space in byte, will zero if mismatch occur
- * @param command - modbus command corresponding of request 01 - Coils rw,2 - Input Discretes ro,
- * 3 - Holding Registers rw,4 - Input Registers ro
- * @return pointer to osPoolId
- * @ingroup modbus
- * */
-/*osPoolId modbus_bind_address_space_by_command(u32 mdb_or_coil_addr,u8* space,u32 * len, u8 command){
-    if((modbus_dinamic_addr_check(mdb_or_coil_addr,command,(u16)*len) < 0) &&
-            it_is_ram(space,*len)){
-        dinamic_address_space_t * dinamic_address_space = NULL;
-        dinamic_address_space = osPoolCAlloc(dinamic_address);
-        if(dinamic_address_space!=NULL){
-            dinamic_address_space->address = mdb_or_coil_addr;
-            dinamic_address_space->len = *len;
-            dinamic_address_space->data = space;
-            dinamic_address_space->command = command;
-        }else{
-            *len=0;
-        }
-    }else{
-        *len =0;
-    }
-    return dinamic_address;
-}*/
-/**
- * @brief check if address in dinamic space
- * @param mdb_addr - address for checking
- * @param command  - mdb command
- * @return  number for pool id if exist
- *          negative - if didt find
- * @ingroup modbus
- */
-/*int modbus_dinamic_addr_check(u32 mdb_or_coil_addr,u8 command,u16 len){
-    int result = -1;
-    if(dinamic_address!=0){
-        for(u16 i=0;i<dinamic_address->pool_sz;i++){
-            dinamic_address_space_t * dinamic_address_space;
-            dinamic_address_space = os_pool_get_by_index(dinamic_address,i);
-            if(dinamic_address_space!=NULL){
-                if((mdb_or_coil_addr >= dinamic_address_space->address) &&
-                   ((mdb_or_coil_addr + len) <= (dinamic_address_space->address + dinamic_address_space->len)) &&
-                   (command == dinamic_address_space->command || dinamic_address_space->command == 0xff)){
-                    result = i;
-                    break;
-                }
-            }
-        }
-    }
-    return result;
-}*/
-/**
- * @brief calc new address and pointer for reading and writing address
- * @param reg_address - pionter will rewrite data to
- * @return pointer to dinamic_address_space_t
- * @ingroup modbus
- * @todo add description
- */
-/*void * modbus_dinamic_addr_get(int pool_id){
-    dinamic_address_space_t * res = NULL;
-    if(dinamic_address!=0&&(pool_id>=0)){
-        dinamic_address_space_t * dinamic_address_space;
-        dinamic_address_space = os_pool_get_by_index(dinamic_address,(u32)pool_id);
-        if(dinamic_address_space!=NULL){
-            res = dinamic_address_space;
-        }
-    }
-    return res;
-}*/

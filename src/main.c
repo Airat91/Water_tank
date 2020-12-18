@@ -122,7 +122,7 @@ uint32_t us_cnt_H = 0;
 navigation_t navigation_style = MENU_NAVIGATION;
 edit_val_t edit_val = {0};
 saved_to_flash_t config;
-const uint16_t def_lvl_calib_table[6] = {
+static const uint16_t def_lvl_calib_table[6] = {
     375,
     738,
     1102,
@@ -130,7 +130,7 @@ const uint16_t def_lvl_calib_table[6] = {
     1829,
     2193,
 };
-const uint16_t def_tmpr_calib_table[11] = {
+static const uint16_t def_tmpr_calib_table[11] = {
     3137,
     2727,
     2275,
@@ -293,16 +293,6 @@ static void MX_RTC_Init(void){
         HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD);
         HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
 
-        save_float_to_bkp(2, dcts_act[0].set_value);
-        save_to_bkp(3, dcts_act[0].state.control);
-/*
-        save_float_to_bkp(4, sensor_state.dispersion*10);
-        save_float_to_bkp(5, sensor_state.hysteresis*10);
-        save_float_to_bkp(6, sensor_state.correction*10);
-        save_to_bkp(7, sensor_state.buff_size);
-
-        save_float_to_bkp(8, semistor_state.max_tmpr);
-*/
     }else{  // read data from bkpram
         HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
         HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
@@ -315,17 +305,6 @@ static void MX_RTC_Init(void){
         dcts.dcts_rtc.month = sDate.Month;
         dcts.dcts_rtc.year = sDate.Year + 2000;
         dcts.dcts_rtc.weekday = sDate.WeekDay;
-
-        dcts_act[0].set_value = read_float_bkp(2, READ_FLOAT_UNSIGNED);
-        dcts_act[0].state.control = read_bkp(3);
-/*
-        sensor_state.dispersion = read_float_bkp(4, READ_FLOAT_UNSIGNED)/10;
-        sensor_state.hysteresis = read_float_bkp(5, READ_FLOAT_UNSIGNED)/10;
-        sensor_state.correction = read_float_bkp(6, READ_FLOAT_SIGNED)/10;
-        sensor_state.buff_size = read_bkp(7);
-
-        semistor_state.max_tmpr = read_float_bkp(8, READ_FLOAT_UNSIGNED);
-*/
     }
 }
 
@@ -668,13 +647,19 @@ static void calib_print (uint8_t start_channel){
     menuItem* temp = selectedMenuItem->Parent;
     uint16_t* calib_table;
     sprintf(string, temp->Text);
-    LCD_set_xy(align_text_center(string, Font_7x10),52);
+    LCD_set_xy(2,52);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     LCD_invert_area(0,53,127,63);
     if(temp->Page == LVL_CALIB){
-        calib_table = lvl_calib_table;
+        sprintf(string, "%.0f",dcts_meas[WTR_LVL_ADC].value);
+        LCD_set_xy(align_text_right(string,Font_7x10),52);
+        LCD_print(string,&Font_7x10,LCD_COLOR_WHITE);
+        calib_table = config.params.lvl_calib_table;
     }else if(temp->Page == TMPR_CALIB){
-        calib_table = tmpr_calib_table;
+        sprintf(string, "%.0f",dcts_meas[WTR_TMPR_ADC].value);
+        LCD_set_xy(align_text_right(string,Font_7x10),52);
+        LCD_print(string,&Font_7x10,LCD_COLOR_WHITE);
+        calib_table = config.params.tmpr_calib_table;
     }
 
     temp = selectedMenuItem->Previous;

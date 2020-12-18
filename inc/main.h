@@ -132,8 +132,6 @@ typedef union{
 void _Error_Handler(char *, int);
 extern uint32_t us_cnt_H;
 extern navigation_t navigation_style;
-extern uint16_t lvl_calib_table[];
-extern uint16_t tmpr_calib_table[];
 extern edit_val_t edit_val;
 extern RTC_HandleTypeDef hrtc;
 extern TIM_HandleTypeDef htim2;
