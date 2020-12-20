@@ -38,8 +38,8 @@ typedef enum {
 typedef struct {
     uint8_t x;
     uint8_t y;
-    uint8_t backlight;
-    uint8_t backlight_lvl;
+    uint8_t backlight;          //backlight state {0 - off, 1 - on}
+    uint8_t backlight_lvl;      //backlight level by PWM in ON state {0 - always off, 1 - 10% ... 10 - 100%}
     uint8_t buf[LCD_BUF_ARRAY_LEN];
 }LCD_t;
 
@@ -60,6 +60,7 @@ extern LCD_t LCD;
  * @ingroup LCD
  */
 extern uint8_t LCD_buf[];
+extern TIM_HandleTypeDef htim4;
 
 /*========== FUNCTION PROTOTYPES ==========*/
 
@@ -83,5 +84,6 @@ int LCD_print_char(char ch, FontDef_t* font, LCD_color_t color);
 int LCD_print(char* string, FontDef_t* font, LCD_color_t color);
 uint8_t align_text_center(char* string, FontDef_t font);
 uint8_t align_text_right(char* string, FontDef_t font);
+int LCD_backlight_timer_init(void);
 
 #endif // LCD_H
