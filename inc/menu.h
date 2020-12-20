@@ -58,6 +58,13 @@ typedef enum {
     ADC_80,
     ADC_90,
     ADC_100,
+    CONNECTION,
+    MDB_ADDR,
+    MDB_BITRATE,
+    MDB_ERR,
+    DISPLAY,
+    LIGHT_LVL,
+    AUTO_OFF,
     SAVE_CHANGES,
 } menu_page_t;
 

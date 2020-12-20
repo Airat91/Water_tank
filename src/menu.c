@@ -51,7 +51,7 @@ MAKE_MENU       (main_page,     NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     
     MAKE_MENU   (lvl_60,        lvl_80,         lvl_40,         lvl_calib,      NULL_ENTRY,     0,          LVL_60,             "АЦП при 60л");
     MAKE_MENU   (lvl_80,        lvl_100,        lvl_60,         lvl_calib,      NULL_ENTRY,     0,          LVL_80,             "АЦП при 80л");
     MAKE_MENU   (lvl_100,       lvl_0,          lvl_80,         lvl_calib,      NULL_ENTRY,     0,          LVL_100,            "АЦП при 100л");
-  MAKE_MENU     (tmpr_calib,    common_info,    lvl_calib,      main_page,      adc_0,          11,         TMPR_CALIB,         "Калиб. темпер.");
+  MAKE_MENU     (tmpr_calib,    connection,    lvl_calib,       main_page,      adc_0,          11,         TMPR_CALIB,         "Калиб. темпер.");
     MAKE_MENU   (adc_0,         adc_10,         adc_100,        tmpr_calib,     NULL_ENTRY,     0,          ADC_0,              "АЦП при 0°C");
     MAKE_MENU   (adc_10,        adc_20,         adc_0,          tmpr_calib,     NULL_ENTRY,     0,          ADC_10,             "АЦП при 10°C");
     MAKE_MENU   (adc_20,        adc_30,         adc_10,         tmpr_calib,     NULL_ENTRY,     0,          ADC_20,             "АЦП при 20°C");
@@ -63,6 +63,13 @@ MAKE_MENU       (main_page,     NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     
     MAKE_MENU   (adc_80,        adc_90,         adc_70,         tmpr_calib,     NULL_ENTRY,     0,          ADC_80,             "АЦП при 80°C");
     MAKE_MENU   (adc_90,        adc_100,        adc_80,         tmpr_calib,     NULL_ENTRY,     0,          ADC_90,             "АЦП при 90°C");
     MAKE_MENU   (adc_100,       adc_0,          adc_90,         tmpr_calib,     NULL_ENTRY,     0,          ADC_100,            "АЦП при 100°C");
+  MAKE_MENU     (connection,    display,        tmpr_calib,     main_page,      mdb_addr,       3,          CONNECTION,         "Связь");
+    MAKE_MENU   (mdb_addr,      bitrate,        errors,         connection,     NULL_ENTRY,     0,          MDB_ADDR,           "Адрес ModBUS");
+    MAKE_MENU   (bitrate,       errors,         mdb_addr,       connection,     NULL_ENTRY,     0,          MDB_BITRATE,        "Битрейт");
+    MAKE_MENU   (errors,        mdb_addr,       bitrate,        connection,     NULL_ENTRY,     0,          MDB_ERR,            "Ошибки");
+  MAKE_MENU     (display,       common_info,    connection,     main_page,      light_lvl,      2,          DISPLAY,            "Дисплей");
+    MAKE_MENU   (light_lvl,     auto_off,       auto_off,       display,        NULL_ENTRY,     0,          LIGHT_LVL,          "Яркость");
+    MAKE_MENU   (auto_off,      light_lvl,      light_lvl,      display,        NULL_ENTRY,     0,          AUTO_OFF,           "Автовыключение");
 
 MAKE_MENU       (save_changes,  NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     0,          SAVE_CHANGES,       "Сохранить изм.");
 

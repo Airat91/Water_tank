@@ -108,6 +108,10 @@ static void save_page_print (void);
 static void info_print (void);
 static void meas_channels_print(void);
 static void calib_print(uint8_t start_channel);
+static void mdb_addr_print(void);
+static void mdb_bitrate_print(void);
+static void light_lvl_print(void);
+static void auto_off_print(void);
 static void save_params(void);
 static void restore_params(void);
 static void save_to_bkp(u8 bkp_num, u8 var);
@@ -361,6 +365,8 @@ void display_task(void const * argument){
         case MEAS_CHANNELS:
         case LVL_CALIB:
         case TMPR_CALIB:
+        case CONNECTION:
+        case DISPLAY:
             main_menu_print();
             break;
         case INFO:
@@ -401,6 +407,18 @@ void display_task(void const * argument){
         case ADC_90:
         case ADC_100:
             calib_print(ADC_0);
+            break;
+        case MDB_ADDR:
+            mdb_addr_print();
+            break;
+        case MDB_BITRATE:
+            mdb_bitrate_print();
+            break;
+        case LIGHT_LVL:
+            light_lvl_print();
+            break;
+        case AUTO_OFF:
+            auto_off_print();
             break;
         case SAVE_CHANGES:
             save_page_print();
@@ -714,6 +732,100 @@ static void calib_print (uint8_t start_channel){
         break;
     }
 
+}
+
+
+static void mdb_addr_print(void){
+    char string[100];
+    menuItem* temp = selectedMenuItem->Parent;
+    sprintf(string, temp->Text);
+    LCD_set_xy(align_text_center(string,Font_7x10),52);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(0,53,127,63);
+
+    sprintf(string, "—траница пока");
+    LCD_set_xy(align_text_center(string,Font_7x10),36);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    sprintf(string, "еще находитс€");
+    LCD_set_xy(align_text_center(string,Font_7x10),26);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    sprintf(string, "в разработке");
+    LCD_set_xy(align_text_center(string,Font_7x10),16);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
+    sprintf(string, "<назад");
+    LCD_set_xy(0,0);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(0,0,42,11);
+}
+static void mdb_bitrate_print(void){
+    char string[100];
+    menuItem* temp = selectedMenuItem->Parent;
+    sprintf(string, temp->Text);
+    LCD_set_xy(align_text_center(string,Font_7x10),52);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(0,53,127,63);
+
+    sprintf(string, "—траница пока");
+    LCD_set_xy(align_text_center(string,Font_7x10),36);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    sprintf(string, "еще находитс€");
+    LCD_set_xy(align_text_center(string,Font_7x10),26);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    sprintf(string, "в разработке");
+    LCD_set_xy(align_text_center(string,Font_7x10),16);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
+    sprintf(string, "<назад");
+    LCD_set_xy(0,0);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(0,0,42,11);
+}
+static void light_lvl_print(void){
+    char string[100];
+    menuItem* temp = selectedMenuItem->Parent;
+    sprintf(string, temp->Text);
+    LCD_set_xy(align_text_center(string,Font_7x10),52);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(0,53,127,63);
+
+    sprintf(string, "—траница пока");
+    LCD_set_xy(align_text_center(string,Font_7x10),36);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    sprintf(string, "еще находитс€");
+    LCD_set_xy(align_text_center(string,Font_7x10),26);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    sprintf(string, "в разработке");
+    LCD_set_xy(align_text_center(string,Font_7x10),16);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
+    sprintf(string, "<назад");
+    LCD_set_xy(0,0);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(0,0,42,11);
+}
+static void auto_off_print(void){
+    char string[100];
+    menuItem* temp = selectedMenuItem->Parent;
+    sprintf(string, temp->Text);
+    LCD_set_xy(align_text_center(string,Font_7x10),52);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(0,53,127,63);
+
+    sprintf(string, "—траница пока");
+    LCD_set_xy(align_text_center(string,Font_7x10),36);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    sprintf(string, "еще находитс€");
+    LCD_set_xy(align_text_center(string,Font_7x10),26);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    sprintf(string, "в разработке");
+    LCD_set_xy(align_text_center(string,Font_7x10),16);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
+    sprintf(string, "<назад");
+    LCD_set_xy(0,0);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(0,0,42,11);
 }
 
 static void save_page_print (void){
