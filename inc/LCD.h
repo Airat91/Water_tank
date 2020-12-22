@@ -41,6 +41,7 @@ typedef struct {
     uint8_t backlight;          //backlight state {0 - off, 1 - on}
     uint8_t backlight_lvl;      //backlight level by PWM in ON state {0 - always off, 1 - 10% ... 10 - 100%}
     uint8_t buf[LCD_BUF_ARRAY_LEN];
+    uint8_t auto_off;           //*10 seconds to display backloght auto off
 }LCD_t;
 
 /**
