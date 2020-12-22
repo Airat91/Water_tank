@@ -115,6 +115,8 @@ typedef enum{
 
 typedef struct{
     uint16_t * p_val;
+    uint16_t val_min;
+    uint16_t val_max;
     uint8_t digit;
     uint8_t digit_max;
 }edit_val_t;

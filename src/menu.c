@@ -28,7 +28,7 @@ static volatile uint8_t menuStackTop;
 
 //                  NAME           NEXT            PREV            PARENT          CHILD        GHILD_NUM   PAGE                    TEXT
 MAKE_MENU       (main_page,     NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     common_info,    4,          MAIN_PAGE,          "Главное меню");
-  MAKE_MENU     (common_info,   meas_channels,  tmpr_calib,     main_page,      info,           0,          COMMON_INFO,        "Об устройстве");
+  MAKE_MENU     (common_info,   meas_channels,  display,        main_page,      info,           0,          COMMON_INFO,        "Об устройстве");
     MAKE_MENU   (info,          NULL_ENTRY,     NULL_ENTRY,     common_info,    NULL_ENTRY,     0,          INFO,               "Об устройстве");
   MAKE_MENU     (meas_channels, lvl_calib,      common_info,    main_page,      meas_ch_0,      13,         MEAS_CHANNELS,      "Изм. каналы");
     MAKE_MENU   (meas_ch_0,     meas_ch_1,      meas_ch_12,     meas_channels,  NULL_ENTRY,     0,          MEAS_CH_0,          0x00);
@@ -63,13 +63,16 @@ MAKE_MENU       (main_page,     NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     
     MAKE_MENU   (adc_80,        adc_90,         adc_70,         tmpr_calib,     NULL_ENTRY,     0,          ADC_80,             "АЦП при 80°C");
     MAKE_MENU   (adc_90,        adc_100,        adc_80,         tmpr_calib,     NULL_ENTRY,     0,          ADC_90,             "АЦП при 90°C");
     MAKE_MENU   (adc_100,       adc_0,          adc_90,         tmpr_calib,     NULL_ENTRY,     0,          ADC_100,            "АЦП при 100°C");
-  MAKE_MENU     (connection,    display,        tmpr_calib,     main_page,      mdb_addr,       3,          CONNECTION,         "Связь");
-    MAKE_MENU   (mdb_addr,      bitrate,        errors,         connection,     NULL_ENTRY,     0,          MDB_ADDR,           "Адрес ModBUS");
-    MAKE_MENU   (bitrate,       errors,         mdb_addr,       connection,     NULL_ENTRY,     0,          MDB_BITRATE,        "Битрейт");
-    MAKE_MENU   (errors,        mdb_addr,       bitrate,        connection,     NULL_ENTRY,     0,          MDB_ERR,            "Ошибки");
+  MAKE_MENU     (connection,    display,        tmpr_calib,     main_page,      mdb_addr,       6,          CONNECTION,         "Связь");
+    MAKE_MENU   (mdb_addr,      bitrate,        noise_err,      connection,     NULL_ENTRY,     0,          MDB_ADDR,           "Адрес ModBUS");
+    MAKE_MENU   (bitrate,       overrun_err,    mdb_addr,       connection,     NULL_ENTRY,     0,          MDB_BITRATE,        "Битрейт");
+    MAKE_MENU   (overrun_err,   parity_err,     bitrate,        connection,     NULL_ENTRY,     0,          MDB_OVERRUN_ERR,    "Ошибки чтения");
+    MAKE_MENU   (parity_err,    frame_err,      overrun_err,    connection,     NULL_ENTRY,     0,          MDB_PARITY_ERR,     "Ошибки паритета");
+    MAKE_MENU   (frame_err,     noise_err,      parity_err,     connection,     NULL_ENTRY,     0,          MDB_FRAME_ERR,      "Ошибки кадра");
+    MAKE_MENU   (noise_err,     mdb_addr,       frame_err,      connection,     NULL_ENTRY,     0,          MDB_NOISE_ERR,      "Ошибки помехи");
   MAKE_MENU     (display,       common_info,    connection,     main_page,      light_lvl,      2,          DISPLAY,            "Дисплей");
     MAKE_MENU   (light_lvl,     auto_off,       auto_off,       display,        NULL_ENTRY,     0,          LIGHT_LVL,          "Яркость");
-    MAKE_MENU   (auto_off,      light_lvl,      light_lvl,      display,        NULL_ENTRY,     0,          AUTO_OFF,           "Автовыключение");
+    MAKE_MENU   (auto_off,      light_lvl,      light_lvl,      display,        NULL_ENTRY,     0,          AUTO_OFF,           "Выкл. подсв.");
 
 MAKE_MENU       (save_changes,  NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     0,          SAVE_CHANGES,       "Сохранить изм.");
 

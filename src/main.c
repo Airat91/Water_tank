@@ -108,10 +108,8 @@ static void save_page_print (void);
 static void info_print (void);
 static void meas_channels_print(void);
 static void calib_print(uint8_t start_channel);
-static void mdb_addr_print(void);
-static void mdb_bitrate_print(void);
-static void light_lvl_print(void);
-static void auto_off_print(void);
+static void mdb_print(void);
+static void display_print(void);
 static void save_params(void);
 static void restore_params(void);
 static void save_to_bkp(u8 bkp_num, u8 var);
@@ -147,6 +145,23 @@ static const uint16_t def_tmpr_calib_table[11] = {
     341,
     258,
 };
+static const uart_bitrate_t bitrate_array[14] = {
+    BITRATE_600,
+    BITRATE_1200,
+    BITRATE_2400,
+    BITRATE_4800,
+    BITRATE_9600,
+    BITRATE_14400,
+    BITRATE_19200,
+    BITRATE_28800,
+    BITRATE_38400,
+    BITRATE_56000,
+    BITRATE_57600,
+    BITRATE_115200,
+    BITRATE_128000,
+    BITRATE_256000,
+};
+static uint16_t bitrate_array_pointer = 0;
 
 
 /**
@@ -409,16 +424,16 @@ void display_task(void const * argument){
             calib_print(ADC_0);
             break;
         case MDB_ADDR:
-            mdb_addr_print();
-            break;
         case MDB_BITRATE:
-            mdb_bitrate_print();
+        case MDB_OVERRUN_ERR:
+        case MDB_PARITY_ERR:
+        case MDB_FRAME_ERR:
+        case MDB_NOISE_ERR:
+            mdb_print();
             break;
         case LIGHT_LVL:
-            light_lvl_print();
-            break;
         case AUTO_OFF:
-            auto_off_print();
+            display_print();
             break;
         case SAVE_CHANGES:
             save_page_print();
@@ -457,10 +472,14 @@ void navigation_task (void const * argument){
             break;
         case DIGIT_EDIT:
             if((pressed_time[BUTTON_UP].pressed > 0)&&(pressed_time[BUTTON_UP].pressed < navigation_task_period)){
-                *edit_val.p_val += uint16_pow(10, (uint16_t)edit_val.digit);
+                if(*edit_val.p_val < edit_val.val_max){
+                    *edit_val.p_val += uint16_pow(10, (uint16_t)edit_val.digit);
+                }
             }
             if((pressed_time[BUTTON_DOWN].pressed > 0)&&(pressed_time[BUTTON_DOWN].pressed < navigation_task_period)){
-                *edit_val.p_val -= uint16_pow(10, (uint16_t)edit_val.digit);
+                if(*edit_val.p_val > edit_val.val_min){
+                    *edit_val.p_val -= uint16_pow(10, (uint16_t)edit_val.digit);
+                }
             }
             if((pressed_time[BUTTON_LEFT].pressed > 0)&&(pressed_time[BUTTON_LEFT].pressed < navigation_task_period)){
                 if(edit_val.digit < edit_val.digit_max){
@@ -516,10 +535,10 @@ static void main_page_print(void){
     LCD_fill_area(1,1,49,62,LCD_COLOR_WHITE);
 
     // print values
-    sprintf(string, "%3.1f%s", dcts_meas[WTR_TMPR].value, dcts_meas[WTR_TMPR].unit);
+    sprintf(string, "%3.1f%s", dcts_meas[WTR_TMPR].value, dcts_meas[WTR_TMPR].unit_cyr);
     LCD_set_xy(align_text_center(string, Font_7x10)-38,45);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    sprintf(string, "%3.1f%s", dcts_meas[WTR_LVL].value, dcts_meas[WTR_LVL].unit);
+    sprintf(string, "%3.1f%s", dcts_meas[WTR_LVL].value, dcts_meas[WTR_LVL].unit_cyr);
     LCD_set_xy(align_text_center(string, Font_7x10)-38,5);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     sprintf(string, "Горячая");
@@ -542,7 +561,7 @@ static void main_page_print(void){
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     LCD_invert_area(52,53,127,63);
     if(dcts_meas[PREDBANNIK_HUM].valid){
-        sprintf(string, "%.1f%s/%.0f%s", dcts_meas[PREDBANNIK_TMPR].value, dcts_meas[PREDBANNIK_TMPR].unit, dcts_meas[PREDBANNIK_HUM].value, dcts_meas[PREDBANNIK_HUM].unit);
+        sprintf(string, "%.1f%s/%.0f%s", dcts_meas[PREDBANNIK_TMPR].value, dcts_meas[PREDBANNIK_TMPR].unit_cyr, dcts_meas[PREDBANNIK_HUM].value, dcts_meas[PREDBANNIK_HUM].unit_cyr);
     }else{
         sprintf(string, "Нет связи");
     }
@@ -554,7 +573,7 @@ static void main_page_print(void){
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     LCD_invert_area(52,32,127,42);
     if(dcts_meas[MOYKA_HUM].valid){
-        sprintf(string, "%.1f%s/%.0f%s", dcts_meas[MOYKA_TMPR].value, dcts_meas[MOYKA_TMPR].unit, dcts_meas[MOYKA_HUM].value, dcts_meas[MOYKA_HUM].unit);
+        sprintf(string, "%.1f%s/%.0f%s", dcts_meas[MOYKA_TMPR].value, dcts_meas[MOYKA_TMPR].unit_cyr, dcts_meas[MOYKA_HUM].value, dcts_meas[MOYKA_HUM].unit_cyr);
     }else{
         sprintf(string, "Нет связи");
     }
@@ -566,7 +585,7 @@ static void main_page_print(void){
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     LCD_invert_area(52,12,127,21);
     if(dcts_meas[MOYKA_HUM].valid){
-        sprintf(string, "%.1f%s", dcts_meas[PARILKA_TMPR].value, dcts_meas[PARILKA_TMPR].unit);
+        sprintf(string, "%.1f%s", dcts_meas[PARILKA_TMPR].value, dcts_meas[PARILKA_TMPR].unit_cyr);
     }else{
         sprintf(string, "Нет связи");
     }
@@ -719,6 +738,8 @@ static void calib_print (uint8_t start_channel){
             navigation_style = DIGIT_EDIT;
             edit_val.digit_max = 3;
             edit_val.digit = 0;
+            edit_val.val_min = 0;
+            edit_val.val_max = 0x4095;
             edit_val.p_val = &calib_table[(uint8_t)selectedMenuItem->Page-start_channel];
         }
         break;
@@ -735,7 +756,8 @@ static void calib_print (uint8_t start_channel){
 }
 
 
-static void mdb_addr_print(void){
+static void mdb_print(void){
+    static uint8_t reinit_uart = 0;
     char string[100];
     menuItem* temp = selectedMenuItem->Parent;
     sprintf(string, temp->Text);
@@ -743,22 +765,152 @@ static void mdb_addr_print(void){
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     LCD_invert_area(0,53,127,63);
 
-    sprintf(string, "Страница пока");
-    LCD_set_xy(align_text_center(string,Font_7x10),36);
+    temp = selectedMenuItem->Previous;
+    sprintf(string, temp->Text);
+    LCD_set_xy(1,39);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    sprintf(string, "еще находится");
-    LCD_set_xy(align_text_center(string,Font_7x10),26);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    sprintf(string, "в разработке");
-    LCD_set_xy(align_text_center(string,Font_7x10),16);
+    switch (temp->Page) {
+    case MDB_OVERRUN_ERR:
+        sprintf(string, "%d",uart_2.overrun_err_cnt);
+        break;
+    case MDB_PARITY_ERR:
+        sprintf(string, "%d",uart_2.parity_err_cnt);
+        break;
+    case MDB_FRAME_ERR:
+        sprintf(string, "%d",uart_2.frame_err_cnt);
+        break;
+    case MDB_NOISE_ERR:
+        sprintf(string, "%d",uart_2.noise_err_cnt);
+        break;
+    case MDB_ADDR:
+        sprintf(string, "%d",config.params.mdb_address);
+        break;
+    case MDB_BITRATE:
+        sprintf(string, "%d",bitrate_array[bitrate_array_pointer]*100);
+        break;
+    }
+    LCD_set_xy(align_text_right(string, Font_7x10)-1,39);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
 
-    sprintf(string, "<назад");
-    LCD_set_xy(0,0);
+    sprintf(string, selectedMenuItem->Text);
+    LCD_set_xy(1,26);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    LCD_invert_area(0,0,42,11);
+    switch (selectedMenuItem->Page) {
+    case MDB_OVERRUN_ERR:
+        sprintf(string, "%d",uart_2.overrun_err_cnt);
+        break;
+    case MDB_PARITY_ERR:
+        sprintf(string, "%d",uart_2.parity_err_cnt);
+        break;
+    case MDB_FRAME_ERR:
+        sprintf(string, "%d",uart_2.frame_err_cnt);
+        break;
+    case MDB_NOISE_ERR:
+        sprintf(string, "%d",uart_2.noise_err_cnt);
+        break;
+    case MDB_ADDR:
+        sprintf(string, "%d",config.params.mdb_address);
+        break;
+    case MDB_BITRATE:
+        sprintf(string, "%d",bitrate_array[bitrate_array_pointer]*100);
+        break;
+    }
+    LCD_set_xy(align_text_right(string, Font_7x10)-1,26);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(0,26,127,39);
+    LCD_invert_area(1,27,126,38);
+
+    temp = selectedMenuItem->Next;
+    sprintf(string, temp->Text);
+    LCD_set_xy(1,14);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    switch (temp->Page) {
+    case MDB_OVERRUN_ERR:
+        sprintf(string, "%d",uart_2.overrun_err_cnt);
+        break;
+    case MDB_PARITY_ERR:
+        sprintf(string, "%d",uart_2.parity_err_cnt);
+        break;
+    case MDB_FRAME_ERR:
+        sprintf(string, "%d",uart_2.frame_err_cnt);
+        break;
+    case MDB_NOISE_ERR:
+        sprintf(string, "%d",uart_2.noise_err_cnt);
+        break;
+    case MDB_ADDR:
+        sprintf(string, "%d",config.params.mdb_address);
+        break;
+    case MDB_BITRATE:
+        sprintf(string, "%d",bitrate_array[bitrate_array_pointer]*100);
+        break;
+    }
+    LCD_set_xy(align_text_right(string, Font_7x10)-1,14);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
+    switch (navigation_style) {
+    case MENU_NAVIGATION:
+        if(reinit_uart){
+            reinit_uart = 0;
+            config.params.mdb_bitrate = (uint16_t)bitrate_array[bitrate_array_pointer];
+            uart_init(config.params.mdb_bitrate, 8, 1, PARITY_NONE, 10000);
+        }
+
+        sprintf(string, "<назад");
+        LCD_set_xy(0,0);
+        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+        LCD_invert_area(0,0,42,11);
+
+        switch (selectedMenuItem->Page) {
+        case MDB_ADDR:
+        case MDB_BITRATE:
+            sprintf(string, "изменить>");
+            LCD_set_xy(align_text_right(string,Font_7x10),0);
+            LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+            LCD_invert_area(62,0,127,11);
+
+            if(pressed_time[BUTTON_RIGHT].pressed > navigation_task_period){
+                while(pressed_time[BUTTON_RIGHT].last_state == BUTTON_PRESSED){
+                }
+                navigation_style = DIGIT_EDIT;
+                switch (selectedMenuItem->Page) {
+                case MDB_ADDR:
+                    edit_val.digit_max = 2;
+                    edit_val.digit = 0;
+                    edit_val.val_min = 0;
+                    edit_val.val_max = 255;
+                    edit_val.p_val = &config.params.mdb_address;
+                    break;
+                case MDB_BITRATE:
+                    edit_val.digit_max = 0;
+                    edit_val.digit = 0;
+                    edit_val.val_min = 0;
+                    edit_val.val_max = 13;
+                    edit_val.p_val = &bitrate_array_pointer;
+                    break;
+                }
+            }
+        }
+        break;
+    case DIGIT_EDIT:
+        reinit_uart = 1;
+
+        sprintf(string, "*ввод");
+        LCD_set_xy(align_text_center(string, Font_7x10),0);
+        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+        LCD_invert_area(46,0,82,11);
+
+        switch (selectedMenuItem->Page) {
+        case MDB_BITRATE:
+            sprintf(string,"%d",bitrate_array[bitrate_array_pointer]*100);
+            LCD_invert_area(126 - (uint8_t)strlen(string)*Font_7x10.FontWidth,27,126,38);
+            break;
+        default:
+            LCD_invert_area(127-(edit_val.digit+1)*Font_7x10.FontWidth,27,126-edit_val.digit*Font_7x10.FontWidth,38);
+        }
+        break;
+    }
 }
-static void mdb_bitrate_print(void){
+static void display_print(void){
     char string[100];
     menuItem* temp = selectedMenuItem->Parent;
     sprintf(string, temp->Text);
@@ -766,67 +918,71 @@ static void mdb_bitrate_print(void){
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     LCD_invert_area(0,53,127,63);
 
-    sprintf(string, "Страница пока");
-    LCD_set_xy(align_text_center(string,Font_7x10),36);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    sprintf(string, "еще находится");
-    LCD_set_xy(align_text_center(string,Font_7x10),26);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    sprintf(string, "в разработке");
-    LCD_set_xy(align_text_center(string,Font_7x10),16);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-
-    sprintf(string, "<назад");
-    LCD_set_xy(0,0);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    LCD_invert_area(0,0,42,11);
-}
-static void light_lvl_print(void){
-    char string[100];
-    menuItem* temp = selectedMenuItem->Parent;
+    /*temp = selectedMenuItem->Previous;
     sprintf(string, temp->Text);
-    LCD_set_xy(align_text_center(string,Font_7x10),52);
+    LCD_set_xy(1,39);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    LCD_invert_area(0,53,127,63);
+    switch (temp->Page) {
+    case LIGHT_LVL:
+        sprintf(string, "%d%%",LCD.backlight_lvl*10);
+        break;
+    case AUTO_OFF:
+        if(LCD.auto_off == 0){
+            sprintf(string, "выкл");
+        }else{
+            sprintf(string, "%dсек",LCD.auto_off*10);
+        }
+        break;
+    }
+    LCD_set_xy(align_text_right(string, Font_7x10)-1,39);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);*/
 
-    sprintf(string, "Страница пока");
-    LCD_set_xy(align_text_center(string,Font_7x10),36);
+    sprintf(string, selectedMenuItem->Text);
+    LCD_set_xy(1,26);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    sprintf(string, "еще находится");
-    LCD_set_xy(align_text_center(string,Font_7x10),26);
+    switch (selectedMenuItem->Page) {
+    case LIGHT_LVL:
+        sprintf(string, "%d%%",LCD.backlight_lvl*10);
+        break;
+    case AUTO_OFF:
+        if(LCD.auto_off == 0){
+            sprintf(string, "выкл");
+        }else{
+            sprintf(string, "%dсек",LCD.auto_off*10);
+        }
+        break;
+    }
+    LCD_set_xy(align_text_right(string, Font_7x10)-1,26);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    sprintf(string, "в разработке");
-    LCD_set_xy(align_text_center(string,Font_7x10),16);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(0,26,127,39);
+    LCD_invert_area(1,27,126,38);
 
-    sprintf(string, "<назад");
-    LCD_set_xy(0,0);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    LCD_invert_area(0,0,42,11);
-}
-static void auto_off_print(void){
-    char string[100];
-    menuItem* temp = selectedMenuItem->Parent;
+    temp = selectedMenuItem->Next;
     sprintf(string, temp->Text);
-    LCD_set_xy(align_text_center(string,Font_7x10),52);
+    LCD_set_xy(1,14);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    LCD_invert_area(0,53,127,63);
+    switch (temp->Page) {
+    case LIGHT_LVL:
+        sprintf(string, "%d%%",LCD.backlight_lvl*10);
+        break;
+    case AUTO_OFF:
+        if(LCD.auto_off == 0){
+            sprintf(string, "выкл");
+        }else{
+            sprintf(string, "%dсек",LCD.auto_off*10);
+        }
+        break;
+    }
+    LCD_set_xy(align_text_right(string, Font_7x10)-1,14);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
 
-    sprintf(string, "Страница пока");
-    LCD_set_xy(align_text_center(string,Font_7x10),36);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    sprintf(string, "еще находится");
-    LCD_set_xy(align_text_center(string,Font_7x10),26);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    sprintf(string, "в разработке");
-    LCD_set_xy(align_text_center(string,Font_7x10),16);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-
-    sprintf(string, "<назад");
+    sprintf(string, "<назад   изменить>");
     LCD_set_xy(0,0);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     LCD_invert_area(0,0,42,11);
+    LCD_invert_area(62,0,127,11);
 }
+
 
 static void save_page_print (void){
     char string[100];
@@ -922,7 +1078,7 @@ void uart_task(void const * argument){
                 uart_2.state &= ~UART_STATE_IN_HANDING;
             }
         }
-        if(uart_2.err_cnt > 10){
+        if((uart_2.overrun_err_cnt + uart_2.frame_err_cnt + uart_2.parity_err_cnt + uart_2.noise_err_cnt) > 100){
             uart_deinit();
             uart_init(config.params.mdb_bitrate, 8, 1, PARITY_NONE, 10000);
         }
@@ -1099,6 +1255,11 @@ static void restore_params(void){
         config.params.mdb_bitrate = BITRATE_56000;
         memcpy(config.params.lvl_calib_table, def_lvl_calib_table, 6);
         memcpy(config.params.tmpr_calib_table, def_tmpr_calib_table, 11);
+    }
+    for(bitrate_array_pointer = 0; bitrate_array_pointer < 14; bitrate_array_pointer++){
+        if(bitrate_array[bitrate_array_pointer] == config.params.mdb_bitrate){
+            break;
+        }
     }
 }
 

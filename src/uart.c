@@ -51,7 +51,10 @@ int uart_init(uart_bitrate_t bit_rate,uint8_t word_len,uint8_t stop_bit_number,p
     uart_2.in_ptr = 0;
     uart_2.received_len = 0;
     uart_2.max_len = UART_BUFF_MAX_LEN;
-    uart_2.err_cnt = 0;
+    uart_2.overrun_err_cnt = 0;
+    uart_2.parity_err_cnt = 0;
+    uart_2.frame_err_cnt = 0;
+    uart_2.noise_err_cnt = 0;
     uart_2.timeout = 0;
     uart_2.timeout_last = 0;
     uart_2.state = UART_STATE_ERASE;
@@ -236,13 +239,13 @@ int uart_handle(void){
         // check for errors
         if (status & USART_SR_PE){// Parity error
             uart_2.state |= UART_STATE_ERROR;
-            uart_2.err_cnt++;
+            uart_2.parity_err_cnt++;
         } else if (status & USART_SR_FE){//frame error
             uart_2.state |= UART_STATE_ERROR;
-           uart_2.err_cnt++;
+            uart_2.frame_err_cnt++;
         } else if (status & USART_SR_NE){//noise detected
             uart_2.state |= UART_STATE_ERROR;
-            uart_2.err_cnt++;
+            uart_2.noise_err_cnt++;
         }
     }
     // transmit mode
@@ -261,9 +264,9 @@ int uart_handle(void){
                 huart2.Instance->DR=uart_2.buff_out[uart_2.out_ptr];
             }
             uart_2.out_ptr++;
-            if(uart_2.out_ptr > uart_2.out_len){
+            /*if(uart_2.out_ptr > uart_2.out_len){
                 uart_2.err_cnt++;
-            }
+            }*/
         }else if(status & USART_SR_TC){
             // end of transmit
             huart2.Instance->CR1 &= ~USART_CR1_TXEIE;
@@ -282,7 +285,7 @@ int uart_handle(void){
     // overrun error without RXNE flag
     if(status & USART_SR_ORE){
         uart_2.state |= UART_STATE_ERROR;
-        uart_2.err_cnt++;
+        uart_2.overrun_err_cnt++;
         dd=huart2.Instance->SR;
         dd=huart2.Instance->DR;
     }

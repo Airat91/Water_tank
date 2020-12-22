@@ -55,7 +55,10 @@ typedef struct {
     uint16_t in_ptr;
     uint16_t received_len;
     uint16_t max_len;
-    uint16_t err_cnt;
+    uint16_t overrun_err_cnt;
+    uint16_t parity_err_cnt;
+    uint16_t frame_err_cnt;
+    uint16_t noise_err_cnt;
     uint16_t timeout;
     uint32_t timeout_last;
     chanel_state_t state;
