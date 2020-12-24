@@ -8,6 +8,7 @@
 /*========== DEFINES ==========*/
 
 #define UART_BUFF_MAX_LEN   256
+#define UART_CONN_LOST_TIMEOUT 2500 //2,5 sec
 
 /*========== TYPEDEFS ==========*/
 
@@ -61,6 +62,8 @@ typedef struct {
     uint16_t noise_err_cnt;
     uint16_t timeout;
     uint32_t timeout_last;
+    uint16_t conn_lost_timeout;
+    uint16_t conn_last;
     chanel_state_t state;
     uint8_t* buff_out;
     uint8_t* buff_in;
@@ -77,7 +80,7 @@ extern UART_HandleTypeDef huart2;
 
 /*========== FUNCTION PROTOTYPES ==========*/
 
-int uart_init(uart_bitrate_t bit_rate,uint8_t word_len,uint8_t stop_bit_number,parity_t parity,uint16_t rx_delay);
+int uart_init(uart_bitrate_t bit_rate,uint8_t word_len,uint8_t stop_bit_number,parity_t parity,uint16_t rx_delay,uint16_t lost_conn_timeout);
 void uart_deinit(void);
 void uart_gpio_init(void);
 void uart_gpio_deinit(void);

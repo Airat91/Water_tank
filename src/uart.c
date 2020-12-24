@@ -43,7 +43,7 @@ uart_stream_t uart_2 = {0};
  *
  * Init UART's GPIOs, config UART params and eanble UART_IRQ
  */
-int uart_init(uart_bitrate_t bit_rate,uint8_t word_len,uint8_t stop_bit_number,parity_t parity,uint16_t rx_delay){
+int uart_init(uart_bitrate_t bit_rate,uint8_t word_len,uint8_t stop_bit_number,parity_t parity,uint16_t rx_delay,uint16_t lost_conn_timeout){
     int result = 0;
     uart_2.out_len = 0;
     uart_2.out_ptr = 0;
@@ -55,8 +55,9 @@ int uart_init(uart_bitrate_t bit_rate,uint8_t word_len,uint8_t stop_bit_number,p
     uart_2.parity_err_cnt = 0;
     uart_2.frame_err_cnt = 0;
     uart_2.noise_err_cnt = 0;
-    uart_2.timeout = 0;
     uart_2.timeout_last = 0;
+    uart_2.conn_lost_timeout = 10000;
+    uart_2.conn_last = 0;
     uart_2.state = UART_STATE_ERASE;
     uart_2.buff_out = uart_buff_out;
     uart_2.buff_in = uart_buff_in;
@@ -239,12 +240,18 @@ int uart_handle(void){
         // check for errors
         if (status & USART_SR_PE){// Parity error
             uart_2.state |= UART_STATE_ERROR;
+            dd = huart2.Instance->SR;
+            dd = huart2.Instance->DR;
             uart_2.parity_err_cnt++;
         } else if (status & USART_SR_FE){//frame error
             uart_2.state |= UART_STATE_ERROR;
+            dd = huart2.Instance->SR;
+            dd = huart2.Instance->DR;
             uart_2.frame_err_cnt++;
         } else if (status & USART_SR_NE){//noise detected
             uart_2.state |= UART_STATE_ERROR;
+            dd = huart2.Instance->SR;
+            dd = huart2.Instance->DR;
             uart_2.noise_err_cnt++;
         }
     }

@@ -852,7 +852,7 @@ static void mdb_print(void){
         if(reinit_uart){
             reinit_uart = 0;
             config.params.mdb_bitrate = (uint16_t)bitrate_array[bitrate_array_pointer];
-            uart_init(config.params.mdb_bitrate, 8, 1, PARITY_NONE, 10000);
+            uart_init(config.params.mdb_bitrate, 8, 1, PARITY_NONE, 10000, UART_CONN_LOST_TIMEOUT);
         }
 
         sprintf(string, "<назад");
@@ -1053,7 +1053,7 @@ void am2302_task (void const * argument){
 #define uart_task_period 5
 void uart_task(void const * argument){
     (void)argument;
-    uart_init(config.params.mdb_bitrate, 8, 1, PARITY_NONE, 10000);
+    uart_init(config.params.mdb_bitrate, 8, 1, PARITY_NONE, 10000, UART_CONN_LOST_TIMEOUT);
     uint16_t tick = 0;
     char string[100];
     uint32_t last_wake_time = osKernelSysTick();
@@ -1066,6 +1066,7 @@ void uart_task(void const * argument){
             uart_2.state &= ~UART_STATE_RECIEVE;
             uart_2.state &= ~UART_STATE_ERROR;
             uart_2.state |= UART_STATE_IN_HANDING;
+            uart_2.conn_last = 0;
 
             if(modbus_packet_for_me(uart_2.buff_received, uart_2.received_len)){
                 uint16_t new_len = modbus_rtu_packet(uart_2.buff_received, uart_2.received_len);
@@ -1078,9 +1079,9 @@ void uart_task(void const * argument){
                 uart_2.state &= ~UART_STATE_IN_HANDING;
             }
         }
-        if((uart_2.overrun_err_cnt + uart_2.frame_err_cnt + uart_2.parity_err_cnt + uart_2.noise_err_cnt) > 100){
+        if(uart_2.conn_last > uart_2.conn_lost_timeout){
             uart_deinit();
-            uart_init(config.params.mdb_bitrate, 8, 1, PARITY_NONE, 10000);
+            uart_init(config.params.mdb_bitrate, 8, 1, PARITY_NONE, 10000, UART_CONN_LOST_TIMEOUT);
         }
         if(tick == 1000/uart_task_period){
             tick = 0;
@@ -1094,6 +1095,7 @@ void uart_task(void const * argument){
             }
         }else{
             tick++;
+            uart_2.conn_last += uart_task_period;
         }
 
         osDelayUntil(&last_wake_time, uart_task_period);
@@ -1227,7 +1229,7 @@ static void save_params(void){
     // rewrite new params
     dcts.dcts_address = (uint8_t)config.params.mdb_address;
     uart_deinit();
-    uart_init(config.params.mdb_bitrate, 8, 1, PARITY_NONE, 10000);
+    uart_init(config.params.mdb_bitrate, 8, 1, PARITY_NONE, 10000, UART_CONN_LOST_TIMEOUT);
     //delay for show message
     osDelay(2000);
     menuChange(current_menu);
