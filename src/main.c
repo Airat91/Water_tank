@@ -443,6 +443,13 @@ void display_task(void const * argument){
         }
 
         LCD_update();
+        if((LCD.auto_off != 0)&&(LCD.backlight == 1)){
+            LCD.auto_off_timeout += display_task_period;
+            if(LCD.auto_off_timeout > (uint32_t)LCD.auto_off * 10000){
+                LCD.auto_off_timeout = 0;
+                LCD_backlight_off();
+            }
+        }
         osDelayUntil(&last_wake_time, display_task_period);
     }
 }
@@ -475,10 +482,16 @@ void navigation_task (void const * argument){
                 if(*edit_val.p_val < edit_val.val_max){
                     *edit_val.p_val += uint16_pow(10, (uint16_t)edit_val.digit);
                 }
+                if(*edit_val.p_val > edit_val.val_max){
+                    *edit_val.p_val = edit_val.val_max;
+                }
             }
             if((pressed_time[BUTTON_DOWN].pressed > 0)&&(pressed_time[BUTTON_DOWN].pressed < navigation_task_period)){
                 if(*edit_val.p_val > edit_val.val_min){
                     *edit_val.p_val -= uint16_pow(10, (uint16_t)edit_val.digit);
+                }
+                if(*edit_val.p_val < edit_val.val_min){
+                    *edit_val.p_val = edit_val.val_min;
                 }
             }
             if((pressed_time[BUTTON_LEFT].pressed > 0)&&(pressed_time[BUTTON_LEFT].pressed < navigation_task_period)){
@@ -976,11 +989,54 @@ static void display_print(void){
     LCD_set_xy(align_text_right(string, Font_7x10)-1,14);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
 
-    sprintf(string, "<назад   изменить>");
-    LCD_set_xy(0,0);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    LCD_invert_area(0,0,42,11);
-    LCD_invert_area(62,0,127,11);
+    switch (navigation_style) {
+    case MENU_NAVIGATION:
+
+        sprintf(string, "<назад   изменить>");
+        LCD_set_xy(0,0);
+        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+        LCD_invert_area(0,0,42,11);
+        LCD_invert_area(62,0,127,11);
+
+        if(pressed_time[BUTTON_RIGHT].pressed > navigation_task_period){
+            while(pressed_time[BUTTON_RIGHT].last_state == BUTTON_PRESSED){
+            }
+            navigation_style = DIGIT_EDIT;
+            switch (selectedMenuItem->Page) {
+            case LIGHT_LVL:
+                edit_val.digit_max = 1;
+                edit_val.digit = 0;
+                edit_val.val_min = 0;
+                edit_val.val_max = 10;
+                edit_val.p_val = &LCD.backlight_lvl;
+                break;
+            case AUTO_OFF:
+                edit_val.digit_max = 1;
+                edit_val.digit = 0;
+                edit_val.val_min = 0;
+                edit_val.val_max = 60;
+                edit_val.p_val = &LCD.auto_off;
+                break;
+            }
+        }
+        break;
+    case DIGIT_EDIT:
+
+        sprintf(string, "*ввод");
+        LCD_set_xy(align_text_center(string, Font_7x10),0);
+        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+        LCD_invert_area(46,0,82,11);
+
+        switch (selectedMenuItem->Page) {
+        case LIGHT_LVL:
+            LCD_invert_area(113-(edit_val.digit+1)*Font_7x10.FontWidth,27,112-edit_val.digit*Font_7x10.FontWidth,38);
+            break;
+        case AUTO_OFF:
+            LCD_invert_area(99-(edit_val.digit+1)*Font_7x10.FontWidth,27,98-edit_val.digit*Font_7x10.FontWidth,38);
+            break;
+        }
+        break;
+    }
 }
 
 

@@ -22,6 +22,7 @@ LCD_t LCD = {
     .backlight_lvl = 2,
     .backlight = 0,
     .auto_off = 0,
+    .auto_off_timeout = 0,
 };
 uint8_t LCD_buf[1024] = {0};
 TIM_HandleTypeDef htim4;

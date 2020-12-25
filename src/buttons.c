@@ -4,6 +4,7 @@
 #include "FreeRTOS.h"
 #include "cmsis_os.h"
 #include "stm32f1xx_hal_gpio.h"
+#include "LCD.h"
 
 
 /**
@@ -47,6 +48,8 @@ void buttons_task (void const * argument){
                 }
                 pressed_time[button].pressed += BUTTONS_TASK_PERIOD;
                 pressed_time[button].last_state = BUTTON_PRESSED;
+                //reset LCD backlight auto off timeout
+                LCD.auto_off_timeout = 0;
             }else{
                 pressed_time[button].last_state = BUTTON_RELEASE;
                 pressed_time[button].pressed = 0;
