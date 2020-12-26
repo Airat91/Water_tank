@@ -87,5 +87,6 @@ int LCD_print(char* string, FontDef_t* font, LCD_color_t color);
 uint8_t align_text_center(char* string, FontDef_t font);
 uint8_t align_text_right(char* string, FontDef_t font);
 int LCD_backlight_timer_init(void);
+void LCD_backlight_timer_handler(void);
 
 #endif // LCD_H

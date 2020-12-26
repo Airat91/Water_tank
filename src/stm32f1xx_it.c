@@ -40,6 +40,7 @@
 #include "control.h"
 #include "main.h"
 #include "uart.h"
+#include "LCD.h"
 
 /* USER CODE BEGIN 0 */
 
@@ -51,6 +52,7 @@ extern RTC_HandleTypeDef hrtc;
 extern TIM_HandleTypeDef htim3;
 extern UART_HandleTypeDef huart1;
 extern TIM_HandleTypeDef htim1;
+extern TIM_HandleTypeDef htim4;
 
 /******************************************************************************/
 /*            Cortex-M3 Processor Interruption and Exception Handlers         */ 
@@ -224,6 +226,12 @@ void USBWakeUp_IRQHandler(void){
 */
 void TIM1_UP_IRQHandler(void){
   HAL_TIM_IRQHandler(&htim1);
+}
+
+
+void TIM4_UP_IRQHandler(void){
+  HAL_TIM_IRQHandler(&htim4);
+  LCD_backlight_timer_handler();
 }
 
 /**

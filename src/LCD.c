@@ -6,7 +6,9 @@
 #include "stm32f1xx_hal_gpio.h"
 #include "stm32f1xx_hal_spi.h"
 #include "stm32f1xx_hal_rcc.h"
+#include "stm32f1xx_hal_tim.h"
 #include "math.h"
+#include "main.h"
 
 /**
   * @defgroup LCD
@@ -37,7 +39,10 @@ TIM_HandleTypeDef htim4;
  */
 int LCD_init (void){
     int result = 0;
+    LCD.auto_off = config.params.lcd_backlight_time;
+    LCD.backlight_lvl = config.params.lcd_backlight_lvl;
     LCD_gpio_init();
+    LCD_backlight_timer_init();
 
     if(LCD_spi_init()<0){
         result = -1;
@@ -129,7 +134,7 @@ void LCD_gpio_init (void){
     GPIO_InitStruct.Pin = LCD_RST_PIN;
     HAL_GPIO_Init(LCD_RST_PORT, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
     GPIO_InitStruct.Pin = LCD_LIGHT_PIN;
     HAL_GPIO_WritePin(LCD_LIGHT_PORT, LCD_LIGHT_PIN, GPIO_PIN_SET);
@@ -383,7 +388,10 @@ int LCD_set_xy(uint8_t x, uint8_t y){
  * @ingroup LCD
  */
 void LCD_backlight_on (void){
-    HAL_GPIO_WritePin(LCD_LIGHT_PORT, LCD_LIGHT_PIN, GPIO_PIN_RESET);
+    if(LCD.backlight_lvl != 0){
+        HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+        //HAL_GPIO_WritePin(LCD_LIGHT_PORT, LCD_LIGHT_PIN, GPIO_PIN_RESET);
+    }
     LCD.backlight = 1;
 }
 
@@ -392,7 +400,8 @@ void LCD_backlight_on (void){
  * @ingroup LCD
  */
 void LCD_backlight_off (void){
-    HAL_GPIO_WritePin(LCD_LIGHT_PORT, LCD_LIGHT_PIN, GPIO_PIN_SET);
+    HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_1);
+    //HAL_GPIO_WritePin(LCD_LIGHT_PORT, LCD_LIGHT_PIN, GPIO_PIN_SET);
     LCD.backlight = 0;
 }
 
@@ -486,7 +495,7 @@ uint8_t align_text_right(char* string, FontDef_t font){
     uint8_t len = (uint8_t)strlen(string);
     return (uint8_t)(128-len*font.FontWidth);
 }
-/*
+
 int LCD_backlight_timer_init(void){
     int result = 0;
     TIM_MasterConfigTypeDef sMasterConfig = {0};
@@ -510,19 +519,17 @@ int LCD_backlight_timer_init(void){
       result = -2;
     }
     sConfigOC.OCMode = TIM_OCMODE_PWM1;
-    sConfigOC.Pulse = 30;
+    sConfigOC.Pulse = LCD.backlight_lvl*10;
     sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
     sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
     if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
     {
       result = -3;
     }
-    HAL_TIM_MspPostInit(&htim4);
-
     return result;
 }
 
 void LCD_backlight_timer_handler(void){
 
 }
-*/
+

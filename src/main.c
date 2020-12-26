@@ -71,6 +71,7 @@
 
 #define FEEDER 0
 #define DEFAULT_TASK_PERIOD 100
+#define RELEASE 0
 
 typedef enum{
     READ_FLOAT_SIGNED = 0,
@@ -177,19 +178,16 @@ int main(void){
     dcts_init();
     restore_params();
     led_lin_init();
+#if RELEASE
+    MX_IWDG_Init();
+#endif //RELEASE
     /*
     MX_RTC_Init();
-    MX_ADC1_Init();
-    HAL_ADC_Start(&hadc1);
-    HAL_ADCEx_InjectedStart(&hadc1);
     */
     /*
     osThreadDef(own_task, default_task, osPriorityNormal, 0, 364);
     defaultTaskHandle = osThreadCreate(osThread(own_task), NULL);
     */
-
-    //osThreadDef(control_task, control_task, osPriorityNormal, 0, 364);
-    //controlTaskHandle = osThreadCreate(osThread(control_task), NULL);
 
     osThreadDef(display_task, display_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE*4);
     displayTaskHandle = osThreadCreate(osThread(display_task), NULL);
@@ -370,6 +368,9 @@ void display_task(void const * argument){
     LCD_init();
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
+#if RELEASE
+        HAL_IWDG_Refresh();
+#endif //RELEASE
         LCD_clr();
         switch (selectedMenuItem->Page){
         case MAIN_PAGE:
@@ -482,7 +483,7 @@ void navigation_task (void const * argument){
                 if(*edit_val.p_val < edit_val.val_max){
                     *edit_val.p_val += uint16_pow(10, (uint16_t)edit_val.digit);
                 }
-                if(*edit_val.p_val > edit_val.val_max){
+                if((*edit_val.p_val > edit_val.val_max)||(*edit_val.p_val < edit_val.val_min)){ //if out of range
                     *edit_val.p_val = edit_val.val_max;
                 }
             }
@@ -490,7 +491,7 @@ void navigation_task (void const * argument){
                 if(*edit_val.p_val > edit_val.val_min){
                     *edit_val.p_val -= uint16_pow(10, (uint16_t)edit_val.digit);
                 }
-                if(*edit_val.p_val < edit_val.val_min){
+                if((*edit_val.p_val > edit_val.val_max)||(*edit_val.p_val < edit_val.val_min)){ //if out of range
                     *edit_val.p_val = edit_val.val_min;
                 }
             }
@@ -924,31 +925,13 @@ static void mdb_print(void){
     }
 }
 static void display_print(void){
+    static uint8_t reinit_backlight = 0;
     char string[100];
     menuItem* temp = selectedMenuItem->Parent;
     sprintf(string, temp->Text);
     LCD_set_xy(align_text_center(string,Font_7x10),52);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     LCD_invert_area(0,53,127,63);
-
-    /*temp = selectedMenuItem->Previous;
-    sprintf(string, temp->Text);
-    LCD_set_xy(1,39);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    switch (temp->Page) {
-    case LIGHT_LVL:
-        sprintf(string, "%d%%",LCD.backlight_lvl*10);
-        break;
-    case AUTO_OFF:
-        if(LCD.auto_off == 0){
-            sprintf(string, "выкл");
-        }else{
-            sprintf(string, "%dсек",LCD.auto_off*10);
-        }
-        break;
-    }
-    LCD_set_xy(align_text_right(string, Font_7x10)-1,39);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);*/
 
     sprintf(string, selectedMenuItem->Text);
     LCD_set_xy(1,26);
@@ -991,6 +974,12 @@ static void display_print(void){
 
     switch (navigation_style) {
     case MENU_NAVIGATION:
+        if(reinit_backlight == 1){
+            reinit_backlight = 0;
+            config.params.lcd_backlight_lvl = LCD.backlight_lvl;
+            config.params.lcd_backlight_time = LCD.auto_off;
+            LCD_backlight_timer_init();
+        }
 
         sprintf(string, "<назад   изменить>");
         LCD_set_xy(0,0);
@@ -1017,10 +1006,14 @@ static void display_print(void){
                 edit_val.val_max = 60;
                 edit_val.p_val = &LCD.auto_off;
                 break;
+            default:
+                break;
             }
         }
         break;
     case DIGIT_EDIT:
+
+        reinit_backlight = 1;
 
         sprintf(string, "*ввод");
         LCD_set_xy(align_text_center(string, Font_7x10),0);
@@ -1302,7 +1295,7 @@ static void restore_params(void){
             area_cnt--;
         }
         uint16_t *addr;
-        addr = (uint32_t)(FLASH_SAVE_PAGE_ADDRESS+ area_cnt*SAVE_AREA_SIZE);
+        addr = (uint32_t)(FLASH_SAVE_PAGE_ADDRESS + area_cnt*SAVE_AREA_SIZE);
         for(uint8_t i = 0; i < SAVED_PARAMS_SIZE; i++){
             config.word[i] = *addr;
             addr++;

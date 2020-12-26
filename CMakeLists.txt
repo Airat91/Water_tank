@@ -5,6 +5,7 @@ include(STM32Toolchain.cmake)
 set(MCU_FAMILY STM32F1xx)
 set(MCU_LINE STM32F103xx)
 set(MCU_TARGET STM32F103c8t6)
+add_definitions(-DSTM32F103xB)
 
 project(${PRJ_NAME} C CXX ASM)
 
