@@ -35,6 +35,12 @@ typedef enum {
     LCD_COLOR_BLACK = 1,
 }LCD_color_t;
 
+typedef enum {
+    LCD_BACKLIGHT_OFF = 0,
+    LCD_BACKLIGHT_ON,
+    LCD_BACKLIGHT_SHUTDOWN,
+}LCD_backlight_t;
+
 typedef struct {
     uint8_t x;
     uint8_t y;
@@ -81,6 +87,7 @@ void LCD_clr(void);
 int LCD_set_xy(uint8_t x, uint8_t y);
 void LCD_backlight_on (void);
 void LCD_backlight_off (void);
+void LCD_backlight_shutdown(void);
 void LCD_backlight_toggle (void);
 int LCD_print_char(char ch, FontDef_t* font, LCD_color_t color);
 int LCD_print(char* string, FontDef_t* font, LCD_color_t color);
@@ -88,5 +95,8 @@ uint8_t align_text_center(char* string, FontDef_t font);
 uint8_t align_text_right(char* string, FontDef_t font);
 int LCD_backlight_timer_init(void);
 void LCD_backlight_timer_handler(void);
+void LCD_backlight_pin_init(void);
+void LCD_backlight_pin_deinit(void);
+void LCD_backlight_pin_off_state(void);
 
 #endif // LCD_H

@@ -444,11 +444,11 @@ void display_task(void const * argument){
         }
 
         LCD_update();
-        if((LCD.auto_off != 0)&&(LCD.backlight == 1)){
+        if((LCD.auto_off != 0)&&(LCD.backlight == LCD_BACKLIGHT_ON)){
             LCD.auto_off_timeout += display_task_period;
             if(LCD.auto_off_timeout > (uint32_t)LCD.auto_off * 10000){
                 LCD.auto_off_timeout = 0;
-                LCD_backlight_off();
+                LCD_backlight_shutdown();
             }
         }
         osDelayUntil(&last_wake_time, display_task_period);
@@ -514,7 +514,9 @@ void navigation_task (void const * argument){
             break;
         }
         if((pressed_time[BUTTON_BREAK].pressed > 0)&&(pressed_time[BUTTON_BREAK].pressed < navigation_task_period)){
-            LCD_backlight_toggle();
+            if(LCD.auto_off == 0){
+                LCD_backlight_toggle();
+            }
         }
         if((pressed_time[BUTTON_SET].pressed > 0)&&(pressed_time[BUTTON_SET].pressed < navigation_task_period)){
             save_params();
@@ -978,7 +980,6 @@ static void display_print(void){
             reinit_backlight = 0;
             config.params.lcd_backlight_lvl = LCD.backlight_lvl;
             config.params.lcd_backlight_time = LCD.auto_off;
-            LCD_backlight_timer_init();
         }
 
         sprintf(string, "<назад   изменить>");
@@ -1022,6 +1023,8 @@ static void display_print(void){
 
         switch (selectedMenuItem->Page) {
         case LIGHT_LVL:
+            LCD_backlight_timer_init();
+            LCD_backlight_on();
             LCD_invert_area(113-(edit_val.digit+1)*Font_7x10.FontWidth,27,112-edit_val.digit*Font_7x10.FontWidth,38);
             break;
         case AUTO_OFF:

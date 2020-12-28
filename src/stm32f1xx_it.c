@@ -231,7 +231,6 @@ void TIM1_UP_IRQHandler(void){
 
 void TIM4_UP_IRQHandler(void){
   HAL_TIM_IRQHandler(&htim4);
-  LCD_backlight_timer_handler();
 }
 
 /**

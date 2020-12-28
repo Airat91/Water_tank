@@ -69,6 +69,7 @@ int LCD_init (void){
     HAL_Delay(2000);*/
     LCD_clr();
     LCD_update();
+    LCD_backlight_on();
     return result;
 }
 /**
@@ -135,12 +136,6 @@ void LCD_gpio_init (void){
     HAL_GPIO_Init(LCD_RST_PORT, &GPIO_InitStruct);
 
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-    GPIO_InitStruct.Pin = LCD_LIGHT_PIN;
-    HAL_GPIO_WritePin(LCD_LIGHT_PORT, LCD_LIGHT_PIN, GPIO_PIN_SET);
-    HAL_GPIO_Init(LCD_LIGHT_PORT, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
     GPIO_InitStruct.Pin = LCD_SCK_PIN;
@@ -157,7 +152,6 @@ void LCD_gpio_init (void){
 void LCD_gpio_deinit (void){
     HAL_GPIO_DeInit(LCD_CS_PORT,LCD_CS_PIN);
     HAL_GPIO_DeInit(LCD_RST_PORT,LCD_RST_PIN);
-    HAL_GPIO_DeInit(LCD_LIGHT_PORT,LCD_LIGHT_PIN);
     HAL_GPIO_DeInit(LCD_SCK_PORT,LCD_SCK_PIN);
     HAL_GPIO_DeInit(LCD_MOSI_PORT,LCD_MOSI_PIN);
 }
@@ -388,11 +382,13 @@ int LCD_set_xy(uint8_t x, uint8_t y){
  * @ingroup LCD
  */
 void LCD_backlight_on (void){
-    if(LCD.backlight_lvl != 0){
+    if(LCD.backlight_lvl > 0){
+        LCD_backlight_pin_init();
         HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
-        //HAL_GPIO_WritePin(LCD_LIGHT_PORT, LCD_LIGHT_PIN, GPIO_PIN_RESET);
+        LCD.backlight = LCD_BACKLIGHT_ON;
+    }else if(LCD.backlight_lvl == 0){
+        LCD_backlight_off();
     }
-    LCD.backlight = 1;
 }
 
 /**
@@ -401,8 +397,20 @@ void LCD_backlight_on (void){
  */
 void LCD_backlight_off (void){
     HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_1);
-    //HAL_GPIO_WritePin(LCD_LIGHT_PORT, LCD_LIGHT_PIN, GPIO_PIN_SET);
-    LCD.backlight = 0;
+    LCD_backlight_pin_off_state();
+    LCD.backlight = LCD_BACKLIGHT_OFF;
+}
+
+/**
+ * @brief Turn off LCD backlight if auto off enable
+ * @ingroup LCD
+ */
+void LCD_backlight_shutdown(void){
+    if(LCD.backlight == LCD_BACKLIGHT_ON){
+        HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_1);
+        LCD_backlight_pin_off_state();
+        LCD.backlight = LCD_BACKLIGHT_SHUTDOWN;
+    }
 }
 
 /**
@@ -410,12 +418,10 @@ void LCD_backlight_off (void){
  * @ingroup LCD
  */
 void LCD_backlight_toggle (void){
-    if(LCD.backlight == 0){
-        HAL_GPIO_WritePin(LCD_LIGHT_PORT, LCD_LIGHT_PIN, GPIO_PIN_RESET);
-        LCD.backlight = 1;
+    if((LCD.backlight == LCD_BACKLIGHT_OFF)||(LCD.backlight == LCD_BACKLIGHT_SHUTDOWN)){
+        LCD_backlight_on();
     }else{
-        HAL_GPIO_WritePin(LCD_LIGHT_PORT, LCD_LIGHT_PIN, GPIO_PIN_SET);
-        LCD.backlight = 0;
+        LCD_backlight_off();
     }
 }
 
@@ -496,11 +502,19 @@ uint8_t align_text_right(char* string, FontDef_t font){
     return (uint8_t)(128-len*font.FontWidth);
 }
 
+/**
+ * @brief Init timer for LCD backlight level control
+ * @return  0 - OK,\n
+ *          -1 - TIM init error,\n
+ *          -2 - TIM syncronyzation config error,\n
+ *          -3 - PWM channel config error
+ * @ingroup LCD
+ */
 int LCD_backlight_timer_init(void){
     int result = 0;
     TIM_MasterConfigTypeDef sMasterConfig = {0};
     TIM_OC_InitTypeDef sConfigOC = {0};
-    __HAL_RCC_TIM3_CLK_ENABLE();
+    __HAL_RCC_TIM4_CLK_ENABLE();
 
     htim4.Instance = TIM4;
     htim4.Init.Prescaler = 71;
@@ -529,7 +543,50 @@ int LCD_backlight_timer_init(void){
     return result;
 }
 
-void LCD_backlight_timer_handler(void){
+/**
+ * @brief Init LCD backlight control pin for PWM mode
+ * @ingroup LCD
+ */
+void LCD_backlight_pin_init(void){
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_GPIOD_CLK_ENABLE();
 
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Pin = LCD_LIGHT_PIN;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(LCD_LIGHT_PORT, &GPIO_InitStruct);
+}
+
+/**
+ * @brief Init LCD backlight control pin like GPIO and off backlight
+ * @ingroup LCD
+ */
+void LCD_backlight_pin_off_state(void){
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_GPIOD_CLK_ENABLE();
+
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Pin = LCD_LIGHT_PIN;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(LCD_LIGHT_PORT, &GPIO_InitStruct);
+    HAL_GPIO_WritePin(LCD_LIGHT_PORT,LCD_LIGHT_PIN,GPIO_PIN_SET);
+}
+
+/**
+ * @brief Deinit LCD backlight control pin
+ * @ingroup LCD
+ */
+void LCD_backlight_pin_deinit(void){
+    HAL_GPIO_DeInit(LCD_LIGHT_PORT,LCD_LIGHT_PIN);
 }
 

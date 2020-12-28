@@ -126,7 +126,7 @@
 /** @addtogroup Device_Included
   * @{
   */
-//#define STM32F103xB 1
+#define STM32F103xB 1
 #if defined(STM32F100xB)
   #include "stm32f100xb.h"
 #elif defined(STM32F100xE)
