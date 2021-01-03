@@ -164,6 +164,42 @@ static const uart_bitrate_t bitrate_array[14] = {
 };
 static uint16_t bitrate_array_pointer = 0;
 
+void dcts_init (void) {
+
+    dcts.dcts_id = DCTS_ID_COMBINED;
+    strcpy (dcts.dcts_ver, "1.0.1");
+    strcpy (dcts.dcts_name, "Pogreb");
+    strcpy (dcts.dcts_name_cyr, "Погреб");
+    dcts.dcts_address = 0x0B;
+    dcts.dcts_rtc.day = 1;
+    dcts.dcts_rtc.month = 1;
+    dcts.dcts_rtc.year = 2000;
+    dcts.dcts_rtc.weekday = 6;
+    dcts.dcts_rtc.hour = 12;
+    dcts.dcts_rtc.minute = 0;
+    dcts.dcts_rtc.second = 0;
+    dcts.dcts_pwr = 0.0f;
+    dcts.dcts_meas_num = MEAS_NUM;
+    dcts.dcts_rele_num = RELE_NUM;
+    dcts.dcts_act_num  = ACT_NUM;
+    dcts.dcts_alrm_num = ALRM_NUM;
+
+    //meas_channels
+
+    dcts_meas_channel_init(WTR_LVL, "Water level", "Уровень", "l", "л");
+    dcts_meas_channel_init(WTR_LVL_ADC, "Water level ADC", "Уровень АЦП", "adc", "adc");
+    dcts_meas_channel_init(WTR_LVL_V, "Water level V", "Уровень В", "V", "В");
+    dcts_meas_channel_init(WTR_TMPR, "Water tmpr", "Темп. воды", "°C", "°C");
+    dcts_meas_channel_init(WTR_TMPR_ADC, "Water tmpr ADC", "Темп. воды АЦП", "adc", "adc");
+    dcts_meas_channel_init(WTR_TMPR_V, "Water tmpr V", "Темп. воды В", "V", "В");
+    dcts_meas_channel_init(PREDBANNIK_TMPR, "Predbannik tmpr", "Темп. предбанник", "°C", "°C");
+    dcts_meas_channel_init(PREDBANNIK_HUM, "Predbannik hum", "Вл. предбанник", "%", "%");
+    dcts_meas_channel_init(MOYKA_TMPR, "Moyka tmpr", "Темп. мойка", "°C", "°C");
+    dcts_meas_channel_init(MOYKA_HUM, "Moyka hum", "Вл. мойка", "%", "%");
+    dcts_meas_channel_init(PARILKA_TMPR, "Parilka tmpr", "Темп. парилка", "°C", "°C");
+    dcts_meas_channel_init(VREF_ADC, "Vref ADC", "ИОН АЦП", "adc", "adc");
+    dcts_meas_channel_init(VREF_V, "Vref V", "ИОН В", "V", "В");
+}
 
 /**
   * @brief  The application entry point.
