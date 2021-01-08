@@ -51,6 +51,8 @@ int uart_init(uart_bitrate_t bit_rate,uint8_t word_len,uint8_t stop_bit_number,p
     uart_2.in_ptr = 0;
     uart_2.received_len = 0;
     uart_2.max_len = UART_BUFF_MAX_LEN;
+    uart_2.recieved_cnt = 0;
+    uart_2.send_cnt = 0;
     uart_2.overrun_err_cnt = 0;
     uart_2.parity_err_cnt = 0;
     uart_2.frame_err_cnt = 0;
@@ -206,6 +208,7 @@ int uart_send(const uint8_t * buff,uint16_t len){
             //huart2.Instance->DR = uart_2.buff_out[0];
             huart2.Instance->SR |= USART_SR_TXE;
             taskEXIT_CRITICAL();
+            uart_2.send_cnt ++;
         }else if(wait > uart_2.timeout){
             result = -2;
         }

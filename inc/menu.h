@@ -61,6 +61,8 @@ typedef enum {
     CONNECTION,
     MDB_ADDR,
     MDB_BITRATE,
+    MDB_RECIEVED_CNT,
+    MDB_SEND_CNT,
     MDB_OVERRUN_ERR,
     MDB_PARITY_ERR,
     MDB_FRAME_ERR,

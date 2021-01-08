@@ -460,6 +460,8 @@ void display_task(void const * argument){
         case ADC_100:
             calib_print(ADC_0);
             break;
+        case MDB_RECIEVED_CNT:
+        case MDB_SEND_CNT:
         case MDB_ADDR:
         case MDB_BITRATE:
         case MDB_OVERRUN_ERR:
@@ -822,6 +824,12 @@ static void mdb_print(void){
     LCD_set_xy(1,39);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     switch (temp->Page) {
+    case MDB_RECIEVED_CNT:
+        sprintf(string, "%d",uart_2.recieved_cnt);
+        break;
+    case MDB_SEND_CNT:
+        sprintf(string, "%d",uart_2.send_cnt);
+        break;
     case MDB_OVERRUN_ERR:
         sprintf(string, "%d",uart_2.overrun_err_cnt);
         break;
@@ -848,6 +856,12 @@ static void mdb_print(void){
     LCD_set_xy(1,26);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     switch (selectedMenuItem->Page) {
+    case MDB_RECIEVED_CNT:
+        sprintf(string, "%d",uart_2.recieved_cnt);
+        break;
+    case MDB_SEND_CNT:
+        sprintf(string, "%d",uart_2.send_cnt);
+        break;
     case MDB_OVERRUN_ERR:
         sprintf(string, "%d",uart_2.overrun_err_cnt);
         break;
@@ -877,6 +891,12 @@ static void mdb_print(void){
     LCD_set_xy(1,14);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     switch (temp->Page) {
+    case MDB_RECIEVED_CNT:
+        sprintf(string, "%d",uart_2.recieved_cnt);
+        break;
+    case MDB_SEND_CNT:
+        sprintf(string, "%d",uart_2.send_cnt);
+        break;
     case MDB_OVERRUN_ERR:
         sprintf(string, "%d",uart_2.overrun_err_cnt);
         break;
@@ -1155,6 +1175,7 @@ void uart_task(void const * argument){
             uart_2.state &= ~UART_STATE_ERROR;
             uart_2.state |= UART_STATE_IN_HANDING;
             uart_2.conn_last = 0;
+            uart_2.recieved_cnt ++;
 
             if(modbus_packet_for_me(uart_2.buff_received, uart_2.received_len)){
                 uint16_t new_len = modbus_rtu_packet(uart_2.buff_received, uart_2.received_len);
