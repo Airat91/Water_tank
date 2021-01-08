@@ -167,10 +167,10 @@ static uint16_t bitrate_array_pointer = 0;
 void dcts_init (void) {
 
     dcts.dcts_id = DCTS_ID_COMBINED;
-    strcpy (dcts.dcts_ver, "1.0.1");
-    strcpy (dcts.dcts_name, "Pogreb");
-    strcpy (dcts.dcts_name_cyr, "Погреб");
-    dcts.dcts_address = 0x0B;
+    strcpy (dcts.dcts_ver, "1.0.2");
+    strcpy (dcts.dcts_name, "Banya");
+    strcpy (dcts.dcts_name_cyr, "Баня");
+    dcts.dcts_address = 0x0A;
     dcts.dcts_rtc.day = 1;
     dcts.dcts_rtc.month = 1;
     dcts.dcts_rtc.year = 2000;

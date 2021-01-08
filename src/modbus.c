@@ -21,24 +21,18 @@
 
 /*  DCTS params in ModBus area:
 
+    3XXXX - strings
+
     30000 - DCTS.dcts_name          (char)*2
     30100 - DCTS.dcts_name_cyr      (char)*2
     30200 - DCTS.dcts_ver           (char)*2
     30300 -                         (char)*2
     30400 -                         (char)*2
     30500 -                         (char)*2
-    30600 - DCTS.dcts_addr          (uint8_t)
-    30601 - DCTS.dcts_id            (uint8_t)
-    ...
-    30610 - DCTS.meas_num           (uint8_t)
-    30611 - DCTS.rele_num           (uint8_t)
-    30612 - DCTS.act_num            (uint8_t)
-    30613 - DCTS.alrm_num           (uint8_t)
-    30613 - DCTS.alrm_num           (uint8_t)
-    ...
-    30700 -                         (uint8_t)
-    30800 -                         (uint8_t)
-    30900 -                         (uint8_t)
+    30600 -                         (char)*2
+    30700 -                         (char)*2
+    30800 -                         (char)*2
+    30900 -                         (char)*2
 
     3100X - dcts_meas[X].name       (char)*2
     3110X - dcts_meas[X].name_cyr   (char)*2
@@ -84,16 +78,36 @@
     3480X -                         (char)*2
     3490X -                         (char)*2
 
-    40000 - DCTS.dcts_pwr           (float)/2 HIGH
-    40001 - DCTS.dcts_pwr           (float)/2 LOW
+    4XXXX - values
+    4X0XX, 4X1XX, 4X2XX - (float)/2
+    4X3XX, 4X4XX, 4X5XX, 4X6XX, 4X7XX, 4X8XX, 4X9XX - (uint8_t)
 
-    40300 - DCTS.rtc.day            (uint8_t)
-    40301 - DCTS.rtc.month          (uint8_t)
-    40302 - DCTS.rtc.year           (uint16_t)
-    40303 - DCTS.rtc.weekday        (uint8_t)
-    40304 - DCTS.rtc.hour           (uint8_t)
-    40305 - DCTS.rtc.minute         (uint8_t)
-    40306 - DCTS.rtc.second         (uint8_t)
+    40000 - DCTS.dcts_pwr                   (float)/2 HIGH
+    40001 - DCTS.dcts_pwr                   (float)/2 LOW
+    4010X -                                 (float)/2 HIGH
+    4010X+1                                 (float)/2 LOW
+    4020X -                                 (float)/2 HIGH
+    4020X+1                                 (float)/2 LOW
+    40300 - DCTS.rtc.day                    (uint8_t)
+    40301 - DCTS.rtc.month                  (uint8_t)
+    40302 - DCTS.rtc.year-2000              (uint8_t)
+    40303 - DCTS.rtc.weekday                (uint8_t)
+    40304 - DCTS.rtc.hour                   (uint8_t)
+    40305 - DCTS.rtc.minute                 (uint8_t)
+    40306 - DCTS.rtc.second                 (uint8_t)
+    ...
+    40400 - DCTS.dcts_addr                  (uint8_t)
+    40401 - DCTS.dcts_id                    (uint8_t)
+    40402 - DCTS.meas_num                   (uint8_t)
+    40403 - DCTS.rele_num                   (uint8_t)
+    40404 - DCTS.act_num                    (uint8_t)
+    40405 - DCTS.alrm_num                   (uint8_t)
+    ...
+    40500 -                                 (uint8_t)
+    40600 -                                 (uint8_t)
+    40700 -                                 (uint8_t)
+    40800 -                                 (uint8_t)
+    40900 -                                 (uint8_t)
 
     4100X - dcts_meas[X/2].value            (float)/2 HIGH
     4100X+1 - dcts_meas[X/2].value          (float)/2 LOW
@@ -153,6 +167,187 @@
 */
 
 /*========= GLOBAL VARIABLES ==========*/
+
+/*========= FUNCTIONS ==========*/
+
+dcts_mdb_t modbus_get_dcts_by_mdb_addr (u16 mdb_addr){
+    dcts_mdb_t temp = {0};
+    u8 channel = mdb_addr%100;
+    u8 group = GROUP_NONE;
+    if(((mdb_addr >= 30000)&&(mdb_addr <= 35000))||\
+    ((mdb_addr >= 40000)&&(mdb_addr <= 45000))){
+        switch ((mdb_addr%10000)/1000){
+        case 0:    //DCTS params
+            group = GROUP_DCTS;
+            break;
+        case 1:    //dcts_meas texts
+            group = GROUP_MEAS;
+            break;
+        case 2:    //dcts_rele texts
+            group = GROUP_RELE;
+            break;
+        case 3:    //dcts_act texts
+            group = GROUP_ACT;
+            break;
+        case 4:    //dcts_alrm texts
+            group = GROUP_ALRM;
+            break;
+        }
+        if(mdb_addr/10000 == 3){
+            switch (group) {
+            case GROUP_DCTS:
+                if(mdb_addr%1000 < 100){
+                    temp.byte[0] = dcts.dcts_name[channel];
+                    temp.byte[1] = dcts.dcts_name[channel+1];
+                }else if((mdb_addr%1000 >= 100)&&(mdb_addr%1000 < 200)){
+                    temp.byte[0] = dcts.dcts_name_cyr[channel];
+                    temp.byte[1] = dcts.dcts_name_cyr[channel+1];
+                }else if((mdb_addr%1000 >= 200)&&(mdb_addr%1000 < 300)){
+                    temp.byte[0] = dcts.dcts_ver[channel];
+                    temp.byte[1] = dcts.dcts_ver[channel+1];
+                }else{
+                    //addr_error
+                }
+                break;
+#if MEAS_NUM
+            case GROUP_MEAS:
+                break;
+#endif //NEAS_NUM
+            }
+        }else if(mdb_addr/10000 == 4){
+            switch (group) {
+            case GROUP_DCTS:
+                if(mdb_addr%1000 < 2){  //dcts.dcts_pwr
+                    temp.f = dcts.dcts_pwr;
+                    if(channel%2 == 0){
+                        temp.word[0] = temp.word[1];
+                    }
+                }else if((mdb_addr%1000 >= 300)&&(mdb_addr%1000 < 307)){    //dcts.rtc
+                    switch (channel){
+                    case 0:
+                        temp.word[0] = (int16_t)dcts.dcts_rtc.day;
+                        break;
+                    case 1:
+                        temp.word[0] = (int16_t)dcts.dcts_rtc.month;
+                        break;
+                    case 2:
+                        temp.word[0] = (int16_t)dcts.dcts_rtc.year - 2000;
+                        break;
+                    case 3:
+                        temp.word[0] = (int16_t)dcts.dcts_rtc.weekday;
+                        break;
+                    case 4:
+                        temp.word[0] = (int16_t)dcts.dcts_rtc.hour;
+                        break;
+                    case 5:
+                        temp.word[0] = (int16_t)dcts.dcts_rtc.minute;
+                        break;
+                    case 6:
+                        temp.word[0] = (int16_t)dcts.dcts_rtc.second;
+                        break;
+                    }
+                }else if((mdb_addr%1000 >= 400)&&(mdb_addr%1000 < 406)){    //dcts params
+                    switch (channel){
+                    case 0:
+                        temp.word[0] = (int16_t)dcts.dcts_address;
+                        break;
+                    case 1:
+                        temp.word[0] = (int16_t)dcts.dcts_id;
+                        break;
+                    case 2:
+                        temp.word[0] = (int16_t)dcts.dcts_meas_num;
+                        break;
+                    case 3:
+                        temp.word[0] = (int16_t)dcts.dcts_rele_num;
+                        break;
+                    case 4:
+                        temp.word[0] = (int16_t)dcts.dcts_act_num;
+                        break;
+                    case 5:
+                        temp.word[0] = (int16_t)dcts.dcts_alrm_num;
+                        break;
+                    }
+                }else{
+                    //addr_error
+                }
+                break;
+#if MEAS_NUM
+            case GROUP_MEAS:
+                if((mdb_addr%1000 < 100)&&(channel < MEAS_NUM*2)){    //dcts_meas.value
+                    temp.f = dcts_meas[channel/2].value;
+                    if(channel%2 == 0){
+                        temp.word[0] = temp.word[1];
+                    }
+                }else if((mdb_addr%1000 >= 300)&&(mdb_addr%1000 < 400)&&(channel < MEAS_NUM)){
+                    temp.word[0] = (int16_t)dcts_meas[channel].valid;
+                }else{
+                    //addr_error
+                }
+                break;
+#endif //MEAS_NUM
+#if RELE_NUM
+            case GROUP_RELE:
+                if((mdb_addr%1000 >= 300)&&(mdb_addr%1000 < 400)&&(channel < MEAS_NUM)){
+                    temp.word[0] = (int16_t)dcts_rele[channel].state.control;
+                }else if((mdb_addr%1000 >= 400)&&(mdb_addr%1000 < 500)&&(channel < MEAS_NUM)){
+                    temp.word[0] = (int16_t)dcts_rele[channel].state.status;
+                }else if((mdb_addr%1000 >= 400)&&(mdb_addr%1000 < 500)&&(channel < MEAS_NUM)){
+                    temp.word[0] = (int16_t)dcts_rele[channel].state.short_cir;
+                }else if((mdb_addr%1000 >= 400)&&(mdb_addr%1000 < 500)&&(channel < MEAS_NUM)){
+                    temp.word[0] = (int16_t)dcts_rele[channel].state.fall;
+                }else{
+                    //addr_error
+                }
+                break;
+#endif //RELE_NUM
+#if ACT_NUM
+            case GROUP_ACT:
+                if((mdb_addr%1000 < 100)&&(channel < MEAS_NUM*2)){    //dcts_meas.value
+                    temp.f = dcts_act[channel/2].set_value;
+                    if(channel%2 == 0){
+                        temp.word[0] = temp.word[1];
+                    }
+                }else if((mdb_addr%1000 >= 100)&&(mdb_addr%1000 < 200)&&(channel < MEAS_NUM*2)){    //dcts_meas.value
+                    temp.f = dcts_act[channel/2].meas_value;
+                    if(channel%2 == 0){
+                        temp.word[0] = temp.word[1];
+                    }
+                }else if((mdb_addr%1000 >= 300)&&(mdb_addr%1000 < 400)&&(channel < MEAS_NUM)){
+                    temp.word[0] = (int16_t)dcts_act[channel].state.control;
+                }else if((mdb_addr%1000 >= 400)&&(mdb_addr%1000 < 500)&&(channel < MEAS_NUM)){
+                    temp.word[0] = (int16_t)dcts_act[channel].state.pin_state;
+                }else if((mdb_addr%1000 >= 400)&&(mdb_addr%1000 < 500)&&(channel < MEAS_NUM)){
+                    temp.word[0] = (int16_t)dcts_act[channel].state.short_cir;
+                }else if((mdb_addr%1000 >= 400)&&(mdb_addr%1000 < 500)&&(channel < MEAS_NUM)){
+                    temp.word[0] = (int16_t)dcts_act[channel].state.fall;
+                }else{
+                    //addr_error
+                }
+                break;
+#endif //ACT_NUM
+#if ALRM_NUM
+            case GROUP_ALRM:
+                if((mdb_addr%1000 >= 300)&&(mdb_addr%1000 < 400)&&(channel < MEAS_NUM)){
+                    temp.word[0] = (int16_t)dcts_alrm[channel].time.hour;
+                }else if((mdb_addr%1000 >= 400)&&(mdb_addr%1000 < 500)&&(channel < MEAS_NUM)){
+                    temp.word[0] = (int16_t)dcts_alrm[channel].time.minute;
+                }else if((mdb_addr%1000 >= 400)&&(mdb_addr%1000 < 500)&&(channel < MEAS_NUM)){
+                    temp.word[0] = (int16_t)dcts_alrm[channel].time.second;
+                }else if((mdb_addr%1000 >= 400)&&(mdb_addr%1000 < 500)&&(channel < MEAS_NUM)){
+                    temp.word[0] = (int16_t)dcts_alrm[channel].enable;
+                }else{
+                    //addr_error
+                }
+                break;
+#endif //ALRM_NUM
+            default:
+                ;//addr_error
+            }
+        }
+    }
+
+    return temp;
+}
 
 /**
  * @brief htons for buffers lenths
@@ -303,56 +498,27 @@ u16 modbus_rtu_packet (u8* pckt,u16 len_in){
             }
             break;*/
         case 3:
+        case 4:
             /*should read only regs*/
             start_address = (u16)(pckt[2] << 8) + pckt[3];
             regs_numm = (u16)(pckt[4] << 8) + pckt[5];
             if (regs_numm < 1) {
                 error = ILLEGAL_DATA_VALUE;
-            }else if(start_address > MEAS_NUM*2){
-                error = ILLEGAL_DATA_ADDRESS;
             }else if(!error){
                 len_reply = (u8)(regs_numm << 1);
                 pckt[2] = (u8)len_reply;
-                dcts_mdb_t data = {0};
+                /*dcts_mdb_t data = {0};
                 for(uint8_t i = 0; i < regs_numm/2; i++){
                     data.f = dcts_meas[start_address/2 + i].value;
                     for(uint8_t byte_nmb = 0; byte_nmb < 4; byte_nmb++){
                         pckt[3+4*i+byte_nmb] = data.byte[3-byte_nmb];
                     }
-                }
-                /*for(uint8_t i = 0; i < regs_numm; i++){
-                    data.word[0] = (int16_t)(dcts_meas[start_address + i].value*100.0f);
-                    for(uint8_t byte_nmb = 0; byte_nmb < 2; byte_nmb++){
-                        pckt[3+2*i+byte_nmb] = data.byte[1-byte_nmb];
-                    }
                 }*/
-                len_reply += 5;
-            }
-            break;
-        case 4:
-            /*read writable regs*/
-            start_address = (u16)(pckt[2] << 8) + pckt[3];
-            regs_numm = (u16)(pckt[4] << 8) + pckt[5];
-            if (regs_numm < 1) {
-                error = ILLEGAL_DATA_VALUE;
-            }else if(start_address > MEAS_NUM*2){
-                error = ILLEGAL_DATA_ADDRESS;
-            }else if(!error){
-                len_reply = (u8)(regs_numm << 1);
-                pckt[2] = (u8)len_reply;
-                dcts_mdb_t data = {0};
-                for(uint8_t i = 0; i < regs_numm/2; i++){
-                    data.f = dcts_meas[start_address/2 + i].value;
-                    for(uint8_t byte_nmb = 0; byte_nmb < 4; byte_nmb++){
-                        pckt[3+4*i+byte_nmb] = (u8)data.byte[3-byte_nmb];
+                for(uint8_t i = 0; i < regs_numm; i++){
+                    for(uint8_t byte_nmb = 0; byte_nmb < 2; byte_nmb++){
+                        pckt[3+2*i+byte_nmb] = modbus_get_dcts_by_mdb_addr(start_address + i).byte[1-byte_nmb];
                     }
                 }
-                /*for(uint8_t i = 0; i < regs_numm; i++){
-                    data.word[0] = (int16_t)(dcts_meas[start_address + i].value*100.0f);
-                    for(uint8_t byte_nmb = 0; byte_nmb < 2; byte_nmb++){
-                        pckt[3+2*i+byte_nmb] = data.byte[1-byte_nmb];
-                    }
-                }*/
                 len_reply += 5;
             }
             break;

@@ -1,5 +1,7 @@
 #include "type_def.h"
 #include "cmsis_os.h"
+#include "dcts.h"
+#include "main.h"
 
 #ifndef MODBUS_H
 #define MODBUS_H 1
@@ -66,6 +68,15 @@ typedef union {
     u8 byte[4];
 }dcts_mdb_t;
 
+typedef enum{
+    GROUP_NONE = 0,
+    GROUP_DCTS,
+    GROUP_MEAS,
+    GROUP_RELE,
+    GROUP_ACT,
+    GROUP_ALRM,
+}dcts_group_t;
+
 /*========== FUNCTION PROTOTYPES ==========*/
 
 u8 htons_buff(u16 *buff, u8 word_numm);
@@ -80,6 +91,7 @@ u8 it_modbus_simply_check(u8* pckt,u16 lenght);
 int it_modbus_request_check(u8* buff,u16 length);
 int it_modbus_responde_check(u8* buff,u16 length);
 int it_modbus_tcp_full_check(u8* buff,u16 len);
+dcts_mdb_t modbus_get_dcts_by_mdb_addr (u16 mdb_addr);
 osPoolId modbus_bind_address_space(u32 mdb_address,u8* space,u32 * len);
 /**
  * @brief add address space for modbus
