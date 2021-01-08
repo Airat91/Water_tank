@@ -84,7 +84,8 @@
     3480X -                         (char)*2
     3490X -                         (char)*2
 
-    40000 - DCTS.dcts_pwr           (uint16_t)(float*100.0f)
+    40000 - DCTS.dcts_pwr           (float)/2 HIGH
+    40001 - DCTS.dcts_pwr           (float)/2 LOW
 
     40300 - DCTS.rtc.day            (uint8_t)
     40301 - DCTS.rtc.month          (uint8_t)
@@ -94,9 +95,12 @@
     40305 - DCTS.rtc.minute         (uint8_t)
     40306 - DCTS.rtc.second         (uint8_t)
 
-    4100X - dcts_meas[X].value              (uint16_t)(float*100.0f)
-    4110X -                                 (uint16_t)(float*100.0f)
-    4120X -                                 (uint16_t)(float*100.0f)
+    4100X - dcts_meas[X/2].value            (float)/2 HIGH
+    4100X+1 - dcts_meas[X/2].value          (float)/2 LOW
+    4110X -                                 (float)/2 HIGH
+    4110X+1                                 (float)/2 LOW
+    4120X -                                 (float)/2 HIGH
+    4120X+1                                 (float)/2 LOW
     4130X - dcts_meas[X].valid              (uint8_t)
     4140X -                                 (uint8_t)
     4150X -                                 (uint8_t)
@@ -105,9 +109,12 @@
     4180X -                                 (uint8_t)
     4190X -                                 (uint8_t)
 
-    4200X -                                 (uint16_t)(float*100.0f)
-    4210X -                                 (uint16_t)(float*100.0f)
-    4220X -                                 (uint16_t)(float*100.0f)
+    4200X -                                 (float)/2 HIGH
+    4200X+1                                 (float)/2 LOW
+    4210X -                                 (float)/2 HIGH
+    4210X+1                                 (float)/2 LOW
+    4220X -                                 (float)/2 HIGH
+    4220X+1                                 (float)/2 LOW
     4230X - dcts_rele[X].state.control      (uint8_t)
     4240X - dcts_rele[X].state.status       (uint8_t)
     4250X - dcts_rele[X].state.short_cir    (uint8_t)
@@ -116,9 +123,12 @@
     4280X -                                 (uint8_t)
     4290X -                                 (uint8_t)
 
-    4300X - dcts_act[X].set_value           (uint16_t)(float*100.0f)
-    4310X - dcts_act[X].meas_value          (uint16_t)(float*100.0f)
-    4320X -                                 (uint16_t)(float*100.0f)
+    4300X - dcts_act[X/2].set_value         (float)/2 HIGH
+    4300X+1 - dcts_act[X/2].set_value       (float)/2 LOW
+    4310X - dcts_act[X/2].meas_value        (float)/2 HIGH
+    4310X+1 - dcts_act[X/2].meas_value      (float)/2 LOW
+    4320X -                                 (float)/2 HIGH
+    4320X+1                                 (float)/2 LOW
     4330X - dcts_act[X].state.control       (uint8_t)
     4340X - dcts_act[X].state.pin_state     (uint8_t)
     4350X - dcts_act[X].state.short_cir     (uint8_t)
@@ -127,9 +137,12 @@
     4380X -                                 (uint8_t)
     4390X -                                 (uint8_t)
 
-    4400X -                                 (uint16_t)(float*100.0f)
-    4410X -                                 (uint16_t)(float*100.0f)
-    4420X -                                 (uint16_t)(float*100.0f)
+    4400X -                                 (float)/2 HIGH
+    4400X+1                                 (float)/2 LOW
+    4410X -                                 (float)/2 HIGH
+    4410X+1                                 (float)/2 LOW
+    4420X -                                 (float)/2 HIGH
+    4420X+1                                 (float)/2 LOW
     4430X - dcts_alrm[X].time.hour          (uint8_t)
     4440X - dcts_alrm[X].time.minute        (uint8_t)
     4450X - dcts_alrm[X].time.second        (uint8_t)
