@@ -301,18 +301,18 @@ u16 modbus_rtu_packet (u8* pckt,u16 len_in){
                 len_reply = (u8)(regs_numm << 1);
                 pckt[2] = (u8)len_reply;
                 dcts_mdb_t data = {0};
-                /*for(uint8_t i = 0; i < regs_numm/2; i++){
+                for(uint8_t i = 0; i < regs_numm/2; i++){
                     data.f = dcts_meas[start_address/2 + i].value;
                     for(uint8_t byte_nmb = 0; byte_nmb < 4; byte_nmb++){
-                        pckt[3+4*i+byte_nmb] = data.byte[byte_nmb];
+                        pckt[3+4*i+byte_nmb] = data.byte[3-byte_nmb];
                     }
-                }*/
-                for(uint8_t i = 0; i < regs_numm; i++){
+                }
+                /*for(uint8_t i = 0; i < regs_numm; i++){
                     data.word[0] = (int16_t)(dcts_meas[start_address + i].value*100.0f);
                     for(uint8_t byte_nmb = 0; byte_nmb < 2; byte_nmb++){
                         pckt[3+2*i+byte_nmb] = data.byte[1-byte_nmb];
                     }
-                }
+                }*/
                 len_reply += 5;
             }
             break;
@@ -328,18 +328,18 @@ u16 modbus_rtu_packet (u8* pckt,u16 len_in){
                 len_reply = (u8)(regs_numm << 1);
                 pckt[2] = (u8)len_reply;
                 dcts_mdb_t data = {0};
-                /*for(uint8_t i = 0; i < regs_numm/2; i++){
+                for(uint8_t i = 0; i < regs_numm/2; i++){
                     data.f = dcts_meas[start_address/2 + i].value;
                     for(uint8_t byte_nmb = 0; byte_nmb < 4; byte_nmb++){
-                        pckt[3+4*i+byte_nmb] = (u8)data.byte[byte_nmb];
+                        pckt[3+4*i+byte_nmb] = (u8)data.byte[3-byte_nmb];
                     }
-                }*/
-                for(uint8_t i = 0; i < regs_numm; i++){
+                }
+                /*for(uint8_t i = 0; i < regs_numm; i++){
                     data.word[0] = (int16_t)(dcts_meas[start_address + i].value*100.0f);
                     for(uint8_t byte_nmb = 0; byte_nmb < 2; byte_nmb++){
                         pckt[3+2*i+byte_nmb] = data.byte[1-byte_nmb];
                     }
-                }
+                }*/
                 len_reply += 5;
             }
             break;
