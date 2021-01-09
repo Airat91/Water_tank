@@ -188,6 +188,24 @@ void adc_task(void const * argument){
         dcts_meas[WTR_TMPR_ADC].value = (float)wtr_tmp_sum/ADC_BUF_SIZE;
         dcts_meas[WTR_TMPR_V].value = dcts_meas[WTR_TMPR_ADC].value*ADC_VREFINT/dcts_meas[VREFINT_ADC].value;
         dcts_meas[WTR_TMPR].value = adc_tmpr_calc(dcts_meas[WTR_TMPR_ADC].value);
+
+        dcts_meas[VREFINT_ADC].valid = TRUE;
+        dcts_meas[VREF_V].valid = TRUE;
+        dcts_meas[WTR_LVL_ADC].valid = TRUE;
+        dcts_meas[WTR_LVL_V].valid = TRUE;
+        if((dcts_meas[WTR_LVL_V].value > 0.1f)&&(dcts_meas[WTR_LVL_V].value < 3.2f)){
+            dcts_meas[WTR_LVL].valid = TRUE;
+        }else{
+            dcts_meas[WTR_LVL].valid = FALSE;
+        }
+        dcts_meas[WTR_TMPR_ADC].valid = TRUE;
+        dcts_meas[WTR_TMPR_V].valid = TRUE;
+        if((dcts_meas[WTR_TMPR_V].value > 0.1f)&&(dcts_meas[WTR_TMPR_V].value < 3.2f)){
+            dcts_meas[WTR_TMPR].valid = TRUE;
+        }else{
+            dcts_meas[WTR_TMPR].valid = FALSE;
+        }
+
         taskEXIT_CRITICAL();
 
         tick++;

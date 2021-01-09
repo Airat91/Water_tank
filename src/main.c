@@ -725,6 +725,9 @@ static void meas_channels_print(void){
         sprintf(string, "%.2f(%s) ", dcts_meas[channel].value, dcts_meas[channel].unit_cyr);
         LCD_set_xy(align_text_right(string,Font_7x10),31-21*i);
         LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+        if(dcts_meas[channel].valid == 0){
+            LCD_fill_area(align_text_right(string,Font_7x10)-2,37-21*i,121,37-21*i,LCD_COLOR_BLACK);
+        }
         temp = temp->Next;
     }
 
