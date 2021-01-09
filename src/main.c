@@ -169,7 +169,7 @@ static uint16_t bitrate_array_pointer = 0;
 void dcts_init (void) {
 
     dcts.dcts_id = DCTS_ID_COMBINED;
-    strcpy (dcts.dcts_ver, "1.0.2");
+    strcpy (dcts.dcts_ver, "1.0.3");
     strcpy (dcts.dcts_name, "Banya");
     strcpy (dcts.dcts_name_cyr, "Баня");
     dcts.dcts_address = 0x0A;
