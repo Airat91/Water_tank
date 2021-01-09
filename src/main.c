@@ -52,6 +52,7 @@
 #include "stdlib.h"
 #include "cmsis_os.h"
 #include "stm32f1xx_hal_gpio.h"
+#include "stm32f1xx_hal_iwdg.h"
 #include "dcts.h"
 #include "dcts_config.h"
 #include "pin_map.h"
@@ -71,7 +72,7 @@
 
 #define FEEDER 0
 #define DEFAULT_TASK_PERIOD 100
-#define RELEASE 0
+#define RELEASE 1
 
 typedef enum{
     READ_FLOAT_SIGNED = 0,
@@ -83,6 +84,7 @@ typedef enum{
 RTC_HandleTypeDef hrtc;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
+IWDG_HandleTypeDef hiwdg;
 osThreadId defaultTaskHandle;
 osThreadId buttonsTaskHandle;
 osThreadId displayTaskHandle;
@@ -197,7 +199,7 @@ void dcts_init (void) {
     dcts_meas_channel_init(MOYKA_TMPR, "Moyka tmpr", "Òåìï. ìîéêà", "°C", "°C");
     dcts_meas_channel_init(MOYKA_HUM, "Moyka hum", "Âë. ìîéêà", "%", "%");
     dcts_meas_channel_init(PARILKA_TMPR, "Parilka tmpr", "Òåìï. ïàðèëêà", "°C", "°C");
-    dcts_meas_channel_init(VREF_ADC, "Vref ADC", "ÈÎÍ ÀÖÏ", "adc", "adc");
+    dcts_meas_channel_init(VREFINT_ADC, "Vrefint ADC", "ÈÎÍ âíóòð. ÀÖÏ", "adc", "adc");
     dcts_meas_channel_init(VREF_V, "Vref V", "ÈÎÍ Â", "V", "Â");
 }
 
@@ -405,7 +407,7 @@ void display_task(void const * argument){
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
 #if RELEASE
-        HAL_IWDG_Refresh();
+        HAL_IWDG_Refresh(&hiwdg);
 #endif //RELEASE
         LCD_clr();
         switch (selectedMenuItem->Page){
@@ -1218,6 +1220,17 @@ uint16_t uint16_pow(uint16_t x, uint16_t pow){
         pow--;
     }
     return result;
+}
+
+static void MX_IWDG_Init(void){
+
+    hiwdg.Instance = IWDG;
+    hiwdg.Init.Prescaler = IWDG_PRESCALER_128;
+    hiwdg.Init.Reload = 3124;   //10sec
+    if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
+    {
+      Error_Handler();
+    }
 }
 
 /**

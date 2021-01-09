@@ -121,7 +121,7 @@ typedef enum {
     MOYKA_TMPR,
     MOYKA_HUM,
     PARILKA_TMPR,
-    VREF_ADC,
+    VREFINT_ADC,
     VREF_V,
 }dcts_meas_t;
 
@@ -157,6 +157,7 @@ extern edit_val_t edit_val;
 extern RTC_HandleTypeDef hrtc;
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
+extern IWDG_HandleTypeDef hiwdg;
 extern osThreadId defaultTaskHandle;
 extern osThreadId buttonsTaskHandle;
 extern osThreadId displayTaskHandle;

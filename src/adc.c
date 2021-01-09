@@ -16,12 +16,13 @@
 ADC_HandleTypeDef hadc1;
 
 #define ADC_BUF_SIZE 50
-#define ADC_PERIOD 100
+#define ADC_PERIOD 10
 #define ADC_MAX 4095
 #define ADC_VREF 3.3f
+#define ADC_VREFINT 1.2f
 
-#define PWR_K   (float)2.187
-#define VREF_INT (float)1.2
+#define PWR_K   2.187f
+#define VREF_INT 1.2f
 
 /*========== FUNCTIONS ==========*/
 
@@ -33,7 +34,8 @@ ADC_HandleTypeDef hadc1;
  *          -3 - WTR_LEV channel config error,\n
  *          -4 - WTR_TMP channel config error,\n
  *          -5 - TMP channel config error,\n
- *          -6 - ADC start error,
+ *          -6 - Self-calibration error,\n
+ *          -7 - ADC start error,
  * @ingroup ADC
  */
 int adc_init (void){
@@ -56,7 +58,7 @@ int adc_init (void){
     }
 
     sConfigInjected.InjectedNbrOfConversion = 4;
-    sConfigInjected.InjectedSamplingTime = ADC_SAMPLETIME_7CYCLES_5;
+    sConfigInjected.InjectedSamplingTime = ADC_SAMPLETIME_239CYCLES_5;
     sConfigInjected.ExternalTrigInjecConv = ADC_INJECTED_SOFTWARE_START;
     sConfigInjected.AutoInjectedConv = ENABLE;
     sConfigInjected.InjectedDiscontinuousConvMode = DISABLE;
@@ -90,9 +92,13 @@ int adc_init (void){
     {
         result = -5;
     }
+    //Self-calibration
+    if(HAL_ADCEx_Calibration_Start(&hadc1) != HAL_OK){
+        result = -6;
+    }
     //Start ADC
     if (HAL_ADC_Start(&hadc1) != HAL_OK){
-        result = -6;
+        result = -7;
     }
 
     return result;
@@ -146,9 +152,7 @@ void adc_task(void const * argument){
     uint16_t wtr_lev[ADC_BUF_SIZE];
     uint16_t wtr_tmp[ADC_BUF_SIZE];
     uint16_t vref[ADC_BUF_SIZE];
-    float pwr_f[ADC_BUF_SIZE];
     uint8_t tick = 0;
-    float temp = 0.0;
     adc_init();
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
@@ -156,37 +160,34 @@ void adc_task(void const * argument){
         uint32_t wtr_lev_sum = 0;
         uint32_t wtr_tmp_sum = 0;
         uint32_t vref_sum = 0;
-        float    pwr_f_sum = 0.0;
 
 
         pwr[tick] = (uint16_t)hadc1.Instance->JDR1;
         wtr_lev[tick] = (uint16_t)hadc1.Instance->JDR2;
         wtr_tmp[tick] = (uint16_t)hadc1.Instance->JDR3;
         vref[tick] = (uint16_t)hadc1.Instance->JDR4;
-        //pwr_f[tick] = (float)pwr[tick]/vref[tick];
 
         for(uint8_t i = 0; i < ADC_BUF_SIZE; i++){
             pwr_sum += pwr[i];
             wtr_lev_sum += wtr_lev[i];
             wtr_tmp_sum += wtr_tmp[i];
             vref_sum += vref[i];
-            //pwr_f_sum += pwr_f[i];
         }
 
-        temp = (float)pwr_sum/ADC_BUF_SIZE;
         taskENTER_CRITICAL();
-        dcts.dcts_pwr = temp/ADC_MAX*ADC_VREF*PWR_K;
+
+        dcts_meas[VREFINT_ADC].value = (float)vref_sum/ADC_BUF_SIZE;
+        dcts_meas[VREF_V].value = ADC_VREFINT/dcts_meas[VREFINT_ADC].value*ADC_MAX;
+
+        dcts.dcts_pwr = (float)pwr_sum/ADC_BUF_SIZE*ADC_VREFINT/dcts_meas[VREFINT_ADC].value*PWR_K;
 
         dcts_meas[WTR_LVL_ADC].value = (float)wtr_lev_sum/ADC_BUF_SIZE;
-        dcts_meas[WTR_LVL_V].value = dcts_meas[WTR_LVL_ADC].value*ADC_VREF/ADC_MAX;
+        dcts_meas[WTR_LVL_V].value = dcts_meas[WTR_LVL_ADC].value*ADC_VREFINT/dcts_meas[VREFINT_ADC].value;
         dcts_meas[WTR_LVL].value =adc_lvl_calc(dcts_meas[WTR_LVL_ADC].value);
 
         dcts_meas[WTR_TMPR_ADC].value = (float)wtr_tmp_sum/ADC_BUF_SIZE;
-        dcts_meas[WTR_TMPR_V].value = dcts_meas[WTR_TMPR_ADC].value*ADC_VREF/ADC_MAX;
+        dcts_meas[WTR_TMPR_V].value = dcts_meas[WTR_TMPR_ADC].value*ADC_VREFINT/dcts_meas[VREFINT_ADC].value;
         dcts_meas[WTR_TMPR].value = adc_tmpr_calc(dcts_meas[WTR_TMPR_ADC].value);
-
-        dcts_meas[VREF_ADC].value = (float)vref_sum/ADC_BUF_SIZE;
-        dcts_meas[VREF_V].value = dcts_meas[VREF_ADC].value*ADC_VREF/ADC_MAX;
         taskEXIT_CRITICAL();
 
         tick++;
