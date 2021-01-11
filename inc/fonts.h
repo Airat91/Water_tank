@@ -52,8 +52,20 @@ typedef struct {
 	uint8_t FontWidth;    /*!< Font width in pixels */
     uint8_t FontHeight;   /*!< Font height in pixels */
     const uint16_t shift; /*!< Shift char number for first symbol*/
-	const uint16_t *data; /*!< Pointer to data font data array */
+    const void *data; /*!< Pointer to data font data array */
 } FontDef_t;
+
+/**
+ * @brief  5 x 7 pixels font size structure
+ * @ingroup FONTS
+ */
+extern FontDef_t Font_5x7;
+
+/**
+ * @brief Data of Font_5x7
+ * @ingroup FONTS
+ */
+extern const uint8_t Font5x7[];
 
 /**
  * @brief  7 x 10 pixels font size structure 

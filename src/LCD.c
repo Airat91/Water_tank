@@ -443,9 +443,13 @@ int LCD_print_char(char ch, FontDef_t* font, LCD_color_t color){
         result = -1;
     }else{
         // go through font
-        uint16_t line;
+        uint16_t line = 0;
         for (uint8_t line_num = 1; line_num < (font->FontHeight+1); line_num++) {
-            line = font->data[(ch - font->shift + 1) * font->FontHeight - line_num];
+            if(sizeof(font->data) == 1){
+                line = (uint16_t)(font->data[(ch - font->shift + 1) * font->FontHeight - line_num] << 8);
+            }else if(sizeof(font->data) == 2){
+                line = font->data[(ch - font->shift + 1) * font->FontHeight - line_num];
+            }
             for (uint8_t x_pos = 0; x_pos < font->FontWidth; x_pos++) {
                 if (line & (0x8000 >> x_pos)) {
                     LCD_set_pixel(LCD.x + x_pos, (LCD.y + line_num), color);
