@@ -57,16 +57,29 @@ int LCD_init (void){
     HAL_Delay(2);
     LCD_send(LCD_RW_WRITE, LCD_RS_COMM, 0x36);
 
-    /*LCD_clr();
+    LCD_clr();
     LCD_backlight_on();
-    LCD_set_xy(0,38);
-    LCD_print("    LCD", &Font_7x10, LCD_COLOR_BLACK);
-    LCD_set_xy(0,20);
-    LCD_print("initialised", &Font_7x10, LCD_COLOR_BLACK);
-    LCD_set_xy(5,2);
-    LCD_print("successful", &Font_7x10, LCD_COLOR_BLACK);
+    /*LCD_set_xy(0,63-7*1);
+    LCD_print("ABCDEFGHIJKLMNOPQRSTUVWXY", &Font_5x7, LCD_COLOR_BLACK);
+    LCD_set_xy(0,63-7*2);
+    LCD_print("abcdefghijklmnopqrstuvwxy", &Font_5x7, LCD_COLOR_BLACK);
+    LCD_set_xy(0,63-7*3);
+    LCD_print("Z0123456789!\"#$%&'()*+,-", &Font_5x7, LCD_COLOR_BLACK);
+    LCD_set_xy(0,63-7*4);
+    LCD_print("z./:;<=>?@[\\]^_`{|}~", &Font_5x7, LCD_COLOR_BLACK);
+    LCD_set_xy(0,63-7*5);
+    LCD_print("", &Font_5x7, LCD_COLOR_BLACK);
+    LCD_set_xy(0,63-7*6);
+    LCD_print("ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×Ø", &Font_5x7, LCD_COLOR_BLACK);
+    LCD_set_xy(0,63-7*7);
+    LCD_print("אבגדהוזחטיךכלםמןנסעףפץצקר", &Font_5x7, LCD_COLOR_BLACK);
+    LCD_set_xy(0,63-7*8);
+    LCD_print("ÙÚÛÜÝÞ‗", &Font_5x7, LCD_COLOR_BLACK);
+    LCD_set_xy(0,63-7*9);
+    LCD_print("שתûü‎‏ÿ", &Font_5x7, LCD_COLOR_BLACK);
     LCD_update();
     HAL_Delay(2000);*/
+
     LCD_clr();
     LCD_update();
     LCD_backlight_on();
