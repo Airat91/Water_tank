@@ -175,10 +175,17 @@ char SSD1306_Putc(char ch, FontDef_t* Font, SSD1306_COLOR_t color) {
 	}
 	
 	/* Go through font */
-	for (i = 0; i < Font->FontHeight; i++) {
-        b = Font->data[(ch - Font->shift) * Font->FontHeight + i];
+    uint16_t data = 0;
+    for (i = 0; i < Font->FontHeight; i++) {
+        if(Font->data_size_in_bytes == 1){
+            uint8_t * line_1_byte = Font->data;
+            data = (uint16_t)(line_1_byte[(ch - Font->shift + 1) * Font->FontHeight - i] << 8);
+        }else if(sizeof(Font->data) == 2){
+            uint16_t * line_2_byte = Font->data;
+            data = line_2_byte[(ch - Font->shift + 1) * Font->FontHeight - i];
+        }
 		for (j = 0; j < Font->FontWidth; j++) {
-			if ((b << j) & 0x8000) {
+            if ((data << j) & 0x8000) {
 				SSD1306_DrawPixel(SSD1306.CurrentX + j, (SSD1306.CurrentY + i), (SSD1306_COLOR_t) color);
 			} else {
 				SSD1306_DrawPixel(SSD1306.CurrentX + j, (SSD1306.CurrentY + i), (SSD1306_COLOR_t)!color);
