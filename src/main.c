@@ -113,6 +113,10 @@ static void meas_channels_print(void);
 static void calib_print(uint8_t start_channel);
 static void mdb_print(void);
 static void display_print(void);
+static void print_back(void);
+static void print_enter_right(void);
+static void print_enter_ok(void);
+static void print_change(void);
 static void save_params(void);
 static void restore_params(void);
 static void save_to_bkp(u8 bkp_num, u8 var);
@@ -575,10 +579,7 @@ static void error_page_print(menu_page_t page){
     sprintf(string, "НАЙДЕНА: %d", page);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
 
-    sprintf(string, "<назад");
-    LCD_set_xy(0,0);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    LCD_invert_area(0,0,42,11);
+    print_back();
 }
 
 static void main_page_print(void){
@@ -673,11 +674,8 @@ static void main_menu_print (void){
     LCD_set_xy(align_text_center(string, Font_7x10),14);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
 
-    sprintf(string, "<назад      выбор>");
-    LCD_set_xy(0,0);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    LCD_invert_area(0,0,42,11);
-    LCD_invert_area(83,0,127,11);
+    print_back();
+    print_enter_right();
 }
 
 static void info_print (void){
@@ -688,23 +686,23 @@ static void info_print (void){
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     LCD_invert_area(0,53,127,63);
 
-    sprintf(string, "Имя: %s",dcts.dcts_name_cyr);
-    LCD_set_xy(2,40);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    sprintf(string, "Тип: %d",dcts.dcts_id);
-    LCD_set_xy(2,30);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    sprintf(string, "Адрес: %d",dcts.dcts_address);
+    sprintf(string, "Имя:%s",dcts.dcts_name_cyr);
+    LCD_set_xy(2,44);
+    LCD_print(string,&Font_5x7,LCD_COLOR_BLACK);
+    sprintf(string, "Тип:%d",dcts.dcts_id);
+    LCD_set_xy(2,36);
+    LCD_print(string,&Font_5x7,LCD_COLOR_BLACK);
+    sprintf(string, "Адрес:%d",dcts.dcts_address);
+    LCD_set_xy(2,28);
+    LCD_print(string,&Font_5x7,LCD_COLOR_BLACK);
+    sprintf(string, "Версия:%s",dcts.dcts_ver);
     LCD_set_xy(2,20);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    sprintf(string, "Версия: %s",dcts.dcts_ver);
-    LCD_set_xy(2,10);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_print(string,&Font_5x7,LCD_COLOR_BLACK);
+    sprintf(string, "Питание:%.1fВ",(double)dcts.dcts_pwr);
+    LCD_set_xy(2,12);
+    LCD_print(string,&Font_5x7,LCD_COLOR_BLACK);
 
-    sprintf(string, "<назад");
-    LCD_set_xy(0,0);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    LCD_invert_area(0,0,42,11);
+    print_back();
 }
 
 static void meas_channels_print(void){
@@ -731,11 +729,7 @@ static void meas_channels_print(void){
         temp = temp->Next;
     }
 
-    sprintf(string, "<назад");
-    LCD_set_xy(0,0);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    LCD_invert_area(0,0,42,11);
-
+    print_back();
 }
 
 static void calib_print (uint8_t start_channel){
@@ -785,11 +779,8 @@ static void calib_print (uint8_t start_channel){
 
     switch (navigation_style) {
     case MENU_NAVIGATION:
-        sprintf(string, "<назад   изменить>");
-        LCD_set_xy(0,0);
-        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-        LCD_invert_area(0,0,42,11);
-        LCD_invert_area(62,0,127,11);
+        print_back();
+        print_change();
 
         if(pressed_time[BUTTON_RIGHT].pressed > navigation_task_period){
             while(pressed_time[BUTTON_RIGHT].last_state == BUTTON_PRESSED){
@@ -803,10 +794,7 @@ static void calib_print (uint8_t start_channel){
         }
         break;
     case DIGIT_EDIT:
-        sprintf(string, "*ввод");
-        LCD_set_xy(align_text_center(string, Font_7x10),0);
-        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-        LCD_invert_area(46,0,82,11);
+        print_enter_ok();
 
         LCD_invert_area(127-(edit_val.digit+1)*Font_7x10.FontWidth,27,126-edit_val.digit*Font_7x10.FontWidth,38);
         break;
@@ -932,18 +920,12 @@ static void mdb_print(void){
             uart_init(config.params.mdb_bitrate, 8, 1, PARITY_NONE, 10000, UART_CONN_LOST_TIMEOUT);
         }
 
-        sprintf(string, "<назад");
-        LCD_set_xy(0,0);
-        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-        LCD_invert_area(0,0,42,11);
+        print_back();
 
         switch (selectedMenuItem->Page) {
         case MDB_ADDR:
         case MDB_BITRATE:
-            sprintf(string, "изменить>");
-            LCD_set_xy(align_text_right(string,Font_7x10),0);
-            LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-            LCD_invert_area(62,0,127,11);
+            print_change();
 
             if(pressed_time[BUTTON_RIGHT].pressed > navigation_task_period){
                 while(pressed_time[BUTTON_RIGHT].last_state == BUTTON_PRESSED){
@@ -971,10 +953,7 @@ static void mdb_print(void){
     case DIGIT_EDIT:
         reinit_uart = 1;
 
-        sprintf(string, "*ввод");
-        LCD_set_xy(align_text_center(string, Font_7x10),0);
-        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-        LCD_invert_area(46,0,82,11);
+        print_enter_ok();
 
         switch (selectedMenuItem->Page) {
         case MDB_BITRATE:
@@ -1043,11 +1022,8 @@ static void display_print(void){
             config.params.lcd_backlight_time = LCD.auto_off;
         }
 
-        sprintf(string, "<назад   изменить>");
-        LCD_set_xy(0,0);
-        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-        LCD_invert_area(0,0,42,11);
-        LCD_invert_area(62,0,127,11);
+        print_back();
+        print_change();
 
         if(pressed_time[BUTTON_RIGHT].pressed > navigation_task_period){
             while(pressed_time[BUTTON_RIGHT].last_state == BUTTON_PRESSED){
@@ -1077,10 +1053,7 @@ static void display_print(void){
 
         reinit_backlight = 1;
 
-        sprintf(string, "*ввод");
-        LCD_set_xy(align_text_center(string, Font_7x10),0);
-        LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-        LCD_invert_area(46,0,82,11);
+        print_enter_ok();
 
         switch (selectedMenuItem->Page) {
         case LIGHT_LVL:
@@ -1108,6 +1081,38 @@ static void save_page_print (void){
     sprintf(string, "КОЭФФИЦИЕНТОВ");
     LCD_set_xy(align_text_center(string, Font_7x10),22);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+}
+
+static void print_back(void){
+    char string[100];
+    sprintf(string, "<назад");
+    LCD_set_xy(0,0);
+    LCD_print(string,&Font_5x7,LCD_COLOR_BLACK);
+    LCD_invert_area(0,0,30,8);
+}
+
+static void print_enter_right(void){
+    char string[100];
+    sprintf(string, "выбор>");
+    LCD_set_xy(align_text_right(string,Font_5x7),0);
+    LCD_print(string,&Font_5x7,LCD_COLOR_BLACK);
+    LCD_invert_area(97,0,127,8);
+}
+
+static void print_enter_ok(void){
+    char string[100];
+    sprintf(string, "ввод*");
+    LCD_set_xy(align_text_center(string,Font_5x7),0);
+    LCD_print(string,&Font_5x7,LCD_COLOR_BLACK);
+    LCD_invert_area(51,0,76,8);
+}
+
+static void print_change(void){
+    char string[100];
+    sprintf(string, "изменить>");
+    LCD_set_xy(align_text_right(string,Font_5x7),0);
+    LCD_print(string,&Font_5x7,LCD_COLOR_BLACK);
+    LCD_invert_area(82,0,127,8);
 }
 
 
