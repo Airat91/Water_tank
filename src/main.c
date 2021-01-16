@@ -641,7 +641,7 @@ static void main_page_print(void){
     LCD_set_xy(align_text_center(string, Font_7x10)+27,10);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     LCD_invert_area(52,12,127,21);
-    if(dcts_meas[MOYKA_HUM].valid){
+    if(dcts_meas[PARILKA_TMPR].valid){
         sprintf(string, "%.1f%s", dcts_meas[PARILKA_TMPR].value, dcts_meas[PARILKA_TMPR].unit_cyr);
     }else{
         sprintf(string, "Нет связи");
