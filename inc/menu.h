@@ -71,6 +71,14 @@ typedef enum {
     LIGHT_LVL,
     AUTO_OFF,
     SAVE_CHANGES,
+    TIME,
+    TIME_HOUR,
+    TIME_MIN,
+    TIME_SEC,
+    DATE,
+    DATE_DAY,
+    DATE_MONTH,
+    DATE_YEAR,
 } menu_page_t;
 
 typedef struct {

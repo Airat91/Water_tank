@@ -28,7 +28,7 @@ static volatile uint8_t menuStackTop;
 
 //                  NAME           NEXT            PREV            PARENT          CHILD        GHILD_NUM   PAGE                    TEXT
 MAKE_MENU       (main_page,     NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     common_info,    4,          MAIN_PAGE,          "Главное меню");
-  MAKE_MENU     (common_info,   meas_channels,  display,        main_page,      info,           0,          COMMON_INFO,        "Об устройстве");
+  MAKE_MENU     (common_info,   meas_channels,  date,           main_page,      info,           0,          COMMON_INFO,        "Об устройстве");
     MAKE_MENU   (info,          NULL_ENTRY,     NULL_ENTRY,     common_info,    NULL_ENTRY,     0,          INFO,               "Об устройстве");
   MAKE_MENU     (meas_channels, lvl_calib,      common_info,    main_page,      meas_ch_0,      13,         MEAS_CHANNELS,      "Изм. каналы");
     MAKE_MENU   (meas_ch_0,     meas_ch_1,      meas_ch_12,     meas_channels,  NULL_ENTRY,     0,          MEAS_CH_0,          0x00);
@@ -72,9 +72,17 @@ MAKE_MENU       (main_page,     NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     
     MAKE_MENU   (parity_err,    frame_err,      overrun_err,    connection,     NULL_ENTRY,     0,          MDB_PARITY_ERR,     "Ошибки паритета");
     MAKE_MENU   (frame_err,     noise_err,      parity_err,     connection,     NULL_ENTRY,     0,          MDB_FRAME_ERR,      "Ошибки кадра");
     MAKE_MENU   (noise_err,     mdb_addr,       frame_err,      connection,     NULL_ENTRY,     0,          MDB_NOISE_ERR,      "Ошибки помехи");
-  MAKE_MENU     (display,       common_info,    connection,     main_page,      light_lvl,      2,          DISPLAY,            "Дисплей");
+  MAKE_MENU     (display,       time,           connection,     main_page,      light_lvl,      2,          DISPLAY,            "Дисплей");
     MAKE_MENU   (light_lvl,     auto_off,       auto_off,       display,        NULL_ENTRY,     0,          LIGHT_LVL,          "Яркость");
     MAKE_MENU   (auto_off,      light_lvl,      light_lvl,      display,        NULL_ENTRY,     0,          AUTO_OFF,           "Выкл. подсв.");
+  MAKE_MENU     (time,          date,           display,        main_page,      time_min,       3,          TIME,               "Время");
+    MAKE_MENU   (time_hour,     time_min,       time_sec,       time,           NULL_ENTRY,     0,          TIME_HOUR,          "Часы");
+    MAKE_MENU   (time_min,      time_sec,       time_hour,      time,           NULL_ENTRY,     0,          TIME_MIN,           "Минуты");
+    MAKE_MENU   (time_sec,      time_hour,      time_min,       time,           NULL_ENTRY,     0,          TIME_SEC,           "Секунды");
+  MAKE_MENU     (date,          common_info,    time,           main_page,      date_month,     3,          DATE,               "Дата");
+    MAKE_MENU   (date_day,      date_month,     date_year,      date,           NULL_ENTRY,     0,          DATE_DAY,           "День");
+    MAKE_MENU   (date_month,    date_year,      date_day,       date,           NULL_ENTRY,     0,          DATE_MONTH,         "Месяц");
+    MAKE_MENU   (date_year,     date_day,       date_month,     date,           NULL_ENTRY,     0,          DATE_YEAR,          "Год");
 
 MAKE_MENU       (save_changes,  NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     0,          SAVE_CHANGES,       "Сохранить изм.");
 

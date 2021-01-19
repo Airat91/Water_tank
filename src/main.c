@@ -109,6 +109,7 @@ static void meas_channels_print(void);
 static void calib_print(uint8_t start_channel);
 static void mdb_print(void);
 static void display_print(void);
+static void rtc_print(void);
 static void print_back(void);
 static void print_enter_right(void);
 static void print_enter_ok(void);
@@ -333,7 +334,7 @@ static void RTC_Init(void){
     sDate.Month = dcts.dcts_rtc.month;
     sDate.Year = (uint8_t)(dcts.dcts_rtc.year - 2000);
 
-    HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD);
+    HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
     HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
 }
 
@@ -351,7 +352,7 @@ int RTC_set(rtc_t dcts_rtc){
     sDate.Month = dcts_rtc.month;
     sDate.Year = (uint8_t)(dcts_rtc.year - 2000);
 
-    HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD);
+    HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
     HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
 
     return result;
@@ -417,6 +418,8 @@ void display_task(void const * argument){
         case TMPR_CALIB:
         case CONNECTION:
         case DISPLAY:
+        case TIME:
+        case DATE:
             main_menu_print();
             break;
         case INFO:
@@ -471,6 +474,14 @@ void display_task(void const * argument){
         case LIGHT_LVL:
         case AUTO_OFF:
             display_print();
+            break;
+        case TIME_HOUR:
+        case TIME_MIN:
+        case TIME_SEC:
+        case DATE_DAY:
+        case DATE_MONTH:
+        case DATE_YEAR:
+            rtc_print();
             break;
         case SAVE_CHANGES:
             save_page_print();
@@ -692,6 +703,12 @@ static void info_print (void){
     LCD_print(string,&Font_5x7,LCD_COLOR_BLACK);
     sprintf(string, "Питание:%.1fВ",(double)dcts.dcts_pwr);
     LCD_set_xy(2,12);
+    LCD_print(string,&Font_5x7,LCD_COLOR_BLACK);
+    sprintf(string, "%02d:%02d:%02d", dcts.dcts_rtc.hour, dcts.dcts_rtc.minute, dcts.dcts_rtc.second);
+    LCD_set_xy(70,44);
+    LCD_print(string,&Font_5x7,LCD_COLOR_BLACK);
+    sprintf(string, "%02d.%02d.%04d", dcts.dcts_rtc.day, dcts.dcts_rtc.month, dcts.dcts_rtc.year);
+    LCD_set_xy(70,36);
     LCD_print(string,&Font_5x7,LCD_COLOR_BLACK);
 
     print_back();
@@ -1060,7 +1077,182 @@ static void display_print(void){
         break;
     }
 }
+static void rtc_print(void){
+    char string[100];
+    static uint8_t rtc_task_suspended = 0;
+    menuItem* temp = selectedMenuItem->Parent;
+    sprintf(string, temp->Text);
+    LCD_set_xy(align_text_center(string,Font_7x10),52);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(0,53,127,63);
 
+    temp = selectedMenuItem->Previous;
+    sprintf(string, temp->Text);
+    LCD_set_xy(1,39);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    switch (temp->Page) {
+    case TIME_HOUR:
+        sprintf(string, "%02d",dcts.dcts_rtc.hour);
+        break;
+    case TIME_MIN:
+        sprintf(string, "%02d",dcts.dcts_rtc.minute);
+        break;
+    case TIME_SEC:
+        sprintf(string, "%02d",dcts.dcts_rtc.second);
+        break;
+    case DATE_DAY:
+        sprintf(string, "%02d",dcts.dcts_rtc.day);
+        break;
+    case DATE_MONTH:
+        sprintf(string, "%02d",dcts.dcts_rtc.month);
+        break;
+    case DATE_YEAR:
+        sprintf(string, "%04d",dcts.dcts_rtc.year);
+        break;
+    }
+    LCD_set_xy(align_text_right(string, Font_7x10)-1,39);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
+    sprintf(string, selectedMenuItem->Text);
+    LCD_set_xy(1,26);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    switch (selectedMenuItem->Page) {
+    case TIME_HOUR:
+        sprintf(string, "%02d",dcts.dcts_rtc.hour);
+        break;
+    case TIME_MIN:
+        sprintf(string, "%02d",dcts.dcts_rtc.minute);
+        break;
+    case TIME_SEC:
+        sprintf(string, "%02d",dcts.dcts_rtc.second);
+        break;
+    case DATE_DAY:
+        sprintf(string, "%02d",dcts.dcts_rtc.day);
+        break;
+    case DATE_MONTH:
+        sprintf(string, "%02d",dcts.dcts_rtc.month);
+        break;
+    case DATE_YEAR:
+        sprintf(string, "%04d",dcts.dcts_rtc.year);
+        break;
+    }
+    LCD_set_xy(align_text_right(string, Font_7x10)-1,26);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_invert_area(0,26,127,39);
+    LCD_invert_area(1,27,126,38);
+
+    temp = selectedMenuItem->Next;
+    sprintf(string, temp->Text);
+    LCD_set_xy(1,14);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    switch (temp->Page) {
+    case TIME_HOUR:
+        sprintf(string, "%02d",dcts.dcts_rtc.hour);
+        break;
+    case TIME_MIN:
+        sprintf(string, "%02d",dcts.dcts_rtc.minute);
+        break;
+    case TIME_SEC:
+        sprintf(string, "%02d",dcts.dcts_rtc.second);
+        break;
+    case DATE_DAY:
+        sprintf(string, "%02d",dcts.dcts_rtc.day);
+        break;
+    case DATE_MONTH:
+        sprintf(string, "%02d",dcts.dcts_rtc.month);
+        break;
+    case DATE_YEAR:
+        sprintf(string, "%04d",dcts.dcts_rtc.year);
+        break;
+    }
+    LCD_set_xy(align_text_right(string, Font_7x10)-1,14);
+    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+
+    switch (navigation_style) {
+    case MENU_NAVIGATION:
+        if(rtc_task_suspended == 1){
+            rtc_task_suspended = 0;
+            RTC_set(dcts.dcts_rtc);
+            vTaskResume(rtcTaskHandle);
+        }
+
+        print_back();
+        print_change();
+
+        if(pressed_time[BUTTON_RIGHT].pressed > navigation_task_period){
+            while(pressed_time[BUTTON_RIGHT].last_state == BUTTON_PRESSED){
+            }
+            navigation_style = DIGIT_EDIT;
+            switch (selectedMenuItem->Page) {
+            case TIME_HOUR:
+                edit_val.digit_max = 1;
+                edit_val.digit = 0;
+                edit_val.val_min = 0;
+                edit_val.val_max = 23;
+                edit_val.p_val = &dcts.dcts_rtc.hour;
+                break;
+            case TIME_MIN:
+                edit_val.digit_max = 1;
+                edit_val.digit = 0;
+                edit_val.val_min = 0;
+                edit_val.val_max = 59;
+                edit_val.p_val = &dcts.dcts_rtc.minute;
+                break;
+            case TIME_SEC:
+                edit_val.digit_max = 1;
+                edit_val.digit = 0;
+                edit_val.val_min = 0;
+                edit_val.val_max = 59;
+                edit_val.p_val = &dcts.dcts_rtc.second;
+                break;
+            case DATE_DAY:
+                edit_val.digit_max = 1;
+                edit_val.digit = 0;
+                edit_val.val_min = 1;
+                edit_val.val_max = 31;
+                edit_val.p_val = &dcts.dcts_rtc.day;
+                break;
+            case DATE_MONTH:
+                edit_val.digit_max = 1;
+                edit_val.digit = 0;
+                edit_val.val_min = 1;
+                edit_val.val_max = 12;
+                edit_val.p_val = &dcts.dcts_rtc.month;
+                break;
+            case DATE_YEAR:
+                edit_val.digit_max = 3;
+                edit_val.digit = 0;
+                edit_val.val_min = 2000;
+                edit_val.val_max = 3000;
+                edit_val.p_val = &dcts.dcts_rtc.year;
+                break;
+            default:
+                break;
+            }
+        }
+        break;
+    case DIGIT_EDIT:
+        if(rtc_task_suspended == 0){
+            rtc_task_suspended = 1;
+            eTaskState state = eTaskGetState(rtcTaskHandle);
+            vTaskSuspend(rtcTaskHandle);
+            state = eTaskGetState(rtcTaskHandle);
+            ;
+        }
+        print_enter_ok();
+        LCD_invert_area(127-(edit_val.digit+1)*Font_7x10.FontWidth,27,126-edit_val.digit*Font_7x10.FontWidth,38);
+
+        /*switch (selectedMenuItem->Page) {
+        case MDB_BITRATE:
+            sprintf(string,"%d",bitrate_array[bitrate_array_pointer]*100);
+            LCD_invert_area(126 - (uint8_t)strlen(string)*Font_7x10.FontWidth,27,126,38);
+            break;
+        default:
+        }*/
+        break;
+    }
+
+}
 
 static void save_page_print (void){
     char string[100];
