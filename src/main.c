@@ -71,7 +71,6 @@
   */
 
 #define FEEDER 0
-#define DEFAULT_TASK_PERIOD 100
 #define RELEASE 1
 
 typedef enum{
@@ -85,7 +84,7 @@ RTC_HandleTypeDef hrtc;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 IWDG_HandleTypeDef hiwdg;
-osThreadId defaultTaskHandle;
+osThreadId rtcTaskHandle;
 osThreadId buttonsTaskHandle;
 osThreadId displayTaskHandle;
 osThreadId menuTaskHandle;
@@ -98,11 +97,8 @@ osThreadId uartTaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-//static void MX_GPIO_Init(void);
 static void MX_IWDG_Init(void);
-static void MX_RTC_Init(void);
-//static void MX_ADC1_Init(void);
-//static void MX_USART1_UART_Init(void);
+static void RTC_Init(void);
 static void tim2_init(void);
 static void main_page_print(void);
 static void main_menu_print(void);
@@ -223,13 +219,9 @@ int main(void){
 #if RELEASE
     MX_IWDG_Init();
 #endif //RELEASE
-    /*
-    MX_RTC_Init();
-    */
-    /*
-    osThreadDef(own_task, default_task, osPriorityNormal, 0, 364);
-    defaultTaskHandle = osThreadCreate(osThread(own_task), NULL);
-    */
+
+    osThreadDef(rtc_task, rtc_task, osPriorityNormal, 0, 364);
+    rtcTaskHandle = osThreadCreate(osThread(rtc_task), NULL);
 
     osThreadDef(display_task, display_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE*4);
     displayTaskHandle = osThreadCreate(osThread(display_task), NULL);
@@ -321,7 +313,7 @@ void SystemClock_Config(void)
 }
 
 /* RTC init function */
-static void MX_RTC_Init(void){
+static void RTC_Init(void){
     RTC_TimeTypeDef sTime = {0};
     RTC_DateTypeDef sDate = {0};
     __HAL_RCC_BKP_CLK_ENABLE();
@@ -333,58 +325,57 @@ static void MX_RTC_Init(void){
         _Error_Handler(__FILE__, __LINE__);
     }
 
-    u32 data;
-    const  u32 data_c = 0x1234;
-    data = BKP->DR1;
-    if(data!=data_c){   // set default values
-        HAL_PWR_EnableBkUpAccess();
-        BKP->DR1 = data_c;
-        HAL_PWR_DisableBkUpAccess();
+    sTime.Hours = dcts.dcts_rtc.hour;
+    sTime.Minutes = dcts.dcts_rtc.minute;
+    sTime.Seconds = dcts.dcts_rtc.second;
 
-        sTime.Hours = dcts.dcts_rtc.hour;
-        sTime.Minutes = dcts.dcts_rtc.minute;
-        sTime.Seconds = dcts.dcts_rtc.second;
+    sDate.Date = dcts.dcts_rtc.day;
+    sDate.Month = dcts.dcts_rtc.month;
+    sDate.Year = (uint8_t)(dcts.dcts_rtc.year - 2000);
 
-        sDate.Date = dcts.dcts_rtc.day;
-        sDate.Month = dcts.dcts_rtc.month;
-        sDate.Year = (uint8_t)(dcts.dcts_rtc.year - 2000);
+    HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD);
+    HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+}
 
-        HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD);
-        HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
 
-    }else{  // read data from bkpram
-        HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
-        HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+int RTC_set(rtc_t dcts_rtc){
+    int result = 0;
+    RTC_TimeTypeDef sTime = {0};
+    RTC_DateTypeDef sDate = {0};
 
-        dcts.dcts_rtc.hour = sTime.Hours;
-        dcts.dcts_rtc.minute = sTime.Minutes;
-        dcts.dcts_rtc.second = sTime.Seconds;
+    sTime.Hours = dcts_rtc.hour;
+    sTime.Minutes = dcts_rtc.minute;
+    sTime.Seconds = dcts_rtc.second;
 
-        dcts.dcts_rtc.day = sDate.Date;
-        dcts.dcts_rtc.month = sDate.Month;
-        dcts.dcts_rtc.year = sDate.Year + 2000;
-        dcts.dcts_rtc.weekday = sDate.WeekDay;
-    }
+    sDate.Date = dcts_rtc.day;
+    sDate.Month = dcts_rtc.month;
+    sDate.Year = (uint8_t)(dcts_rtc.year - 2000);
+
+    HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD);
+    HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+
+    return result;
 }
 
 
 /**
- * @brief default_task
+ * @brief RTC task
  * @param argument - None
  * @todo add group
  */
-void default_task(void const * argument){
+#define DEFAULT_TASK_PERIOD 500
+void rtc_task(void const * argument){
 
     (void)argument;
-    RTC_TimeTypeDef time;
-    RTC_DateTypeDef date;
+    RTC_TimeTypeDef time = {0};
+    RTC_DateTypeDef date = {0};
+    RTC_Init();
     uint32_t last_wake_time = osKernelSysTick();
-
-    //HAL_IWDG_Refresh(&hiwdg);
     while(1){
         HAL_RTC_GetDate(&hrtc,&date,RTC_FORMAT_BIN);
         HAL_RTC_GetTime(&hrtc,&time,RTC_FORMAT_BIN);
 
+        taskENTER_CRITICAL();
         dcts.dcts_rtc.hour = time.Hours;
         dcts.dcts_rtc.minute = time.Minutes;
         dcts.dcts_rtc.second = time.Seconds;
@@ -393,8 +384,9 @@ void default_task(void const * argument){
         dcts.dcts_rtc.month = date.Month;
         dcts.dcts_rtc.year = date.Year + 2000;
         dcts.dcts_rtc.weekday = date.WeekDay;
+        taskEXIT_CRITICAL();
 
-        //HAL_IWDG_Refresh(&hiwdg);
+        HAL_IWDG_Refresh(&hiwdg);
         osDelayUntil(&last_wake_time, DEFAULT_TASK_PERIOD);
     }
 }

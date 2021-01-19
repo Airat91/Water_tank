@@ -281,7 +281,7 @@ dcts_mdb_t modbus_get_dcts_by_mdb_addr (u16 mdb_addr){
                 }else if((mdb_addr%1000 >= 300)&&(mdb_addr%1000 < 400)&&(channel < MEAS_NUM)){
                     temp.word[0] = (int16_t)dcts_meas[channel].valid;
                 }else{
-                    //addr_error
+                    ;//addr_error
                 }
                 break;
 #endif //MEAS_NUM

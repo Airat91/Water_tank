@@ -57,6 +57,7 @@
 #include "cmsis_os.h"
 #include "uart.h"
 #include "flash.h"
+#include "dcts.h"
 
 
 #define AIR_PORT GPIOA
@@ -158,7 +159,7 @@ extern RTC_HandleTypeDef hrtc;
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
 extern IWDG_HandleTypeDef hiwdg;
-extern osThreadId defaultTaskHandle;
+extern osThreadId rtcTaskHandle;
 extern osThreadId buttonsTaskHandle;
 extern osThreadId displayTaskHandle;
 extern osThreadId menuTaskHandle;
@@ -171,9 +172,10 @@ extern saved_to_flash_t config;
 
 void display_task(void const * argument);
 void am2302_task(void const * argument);
-void default_task(void const * argument);
+void rtc_task(void const * argument);
 void navigation_task(void const * argument);
 void uart_task(void const * argument);
+int RTC_set(rtc_t dcts_rtc);
 
 uint32_t us_tim_get_value(void);
 void us_tim_delay(uint32_t us);
