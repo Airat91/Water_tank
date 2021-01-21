@@ -131,12 +131,41 @@ typedef enum{
     DIGIT_EDIT,
 }navigation_t;
 
+typedef enum{
+    VAL_UNKNOWN = 0,
+    VAL_UINT8,
+    VAL_INT8,
+    VAL_UINT16,
+    VAL_INT16,
+    VAL_UINT32,
+    VAL_INT32,
+}edit_val_type;
+
+typedef union{
+    uint8_t * p_uint8;
+    int8_t * p_int8;
+    uint16_t * p_uint16;
+    int16_t * p_int16;
+    uint32_t * p_uint32;
+    int32_t * p_int32;
+}edit_val_p_type_t;
+
+ typedef union{
+     uint8_t uint8;
+     int8_t int8;
+     uint16_t uint16;
+     int16_t int16;
+     uint32_t uint32;
+     int32_t int32;
+ }edit_val_type_t;
+
 typedef struct{
-    uint16_t * p_val;
-    uint16_t val_min;
-    uint16_t val_max;
+    edit_val_p_type_t p_val;
+    edit_val_type_t val_min;
+    edit_val_type_t val_max;
     uint8_t digit;
     uint8_t digit_max;
+    edit_val_type type;
 }edit_val_t;
 
 typedef union{
@@ -179,7 +208,7 @@ int RTC_set(rtc_t dcts_rtc);
 
 uint32_t us_tim_get_value(void);
 void us_tim_delay(uint32_t us);
-uint16_t uint16_pow(uint16_t x, uint16_t pow);
+uint32_t uint32_pow(uint16_t x, uint8_t pow);
 
 
 #endif /* __MAIN_H__ */

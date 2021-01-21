@@ -527,19 +527,111 @@ void navigation_task (void const * argument){
             break;
         case DIGIT_EDIT:
             if((pressed_time[BUTTON_UP].pressed > 0)&&(pressed_time[BUTTON_UP].pressed < navigation_task_period)){
-                if(*edit_val.p_val < edit_val.val_max){
-                    *edit_val.p_val += uint16_pow(10, (uint16_t)edit_val.digit);
-                }
-                if((*edit_val.p_val > edit_val.val_max)||(*edit_val.p_val < edit_val.val_min)){ //if out of range
-                    *edit_val.p_val = edit_val.val_max;
+                switch(edit_val.type){
+                case VAL_INT8:
+                    if(*edit_val.p_val.p_int8 < edit_val.val_max.int8){
+                        *edit_val.p_val.p_int8 += (int8_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_int8 > edit_val.val_max.int8)||(*edit_val.p_val.p_int8 < edit_val.val_min.int8)){ //if out of range
+                        *edit_val.p_val.p_int8 = edit_val.val_max.int8;
+                    }
+                    break;
+                case VAL_UINT8:
+                    if(*edit_val.p_val.p_uint8 < edit_val.val_max.uint8){
+                        *edit_val.p_val.p_uint8 += (uint8_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_uint8 > edit_val.val_max.uint8)||(*edit_val.p_val.p_uint8 < edit_val.val_min.uint8)){ //if out of range
+                        *edit_val.p_val.p_uint8 = edit_val.val_max.uint8;
+                    }
+                    break;
+                case VAL_INT16:
+                    if(*edit_val.p_val.p_int16 < edit_val.val_max.int16){
+                        *edit_val.p_val.p_int16 += (int16_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_int16 > edit_val.val_max.int16)||(*edit_val.p_val.p_int16 < edit_val.val_min.int16)){ //if out of range
+                        *edit_val.p_val.p_int16 = edit_val.val_max.int16;
+                    }
+                    break;
+                case VAL_UINT16:
+                    if(*edit_val.p_val.p_uint16 < edit_val.val_max.uint16){
+                        *edit_val.p_val.p_uint16 += (uint16_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_uint16 > edit_val.val_max.uint16)||(*edit_val.p_val.p_uint16 < edit_val.val_min.uint16)){ //if out of range
+                        *edit_val.p_val.p_uint16 = edit_val.val_max.uint16;
+                    }
+                    break;
+                case VAL_INT32:
+                    if(*edit_val.p_val.p_int32 < edit_val.val_max.int32){
+                        *edit_val.p_val.p_int32 += (int32_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_int32 > edit_val.val_max.int32)||(*edit_val.p_val.p_int32 < edit_val.val_min.int32)){ //if out of range
+                        *edit_val.p_val.p_int32 = edit_val.val_max.int32;
+                    }
+                    break;
+                case VAL_UINT32:
+                    if(*edit_val.p_val.p_uint32 < edit_val.val_max.uint32){
+                        *edit_val.p_val.p_uint32 += (uint32_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_uint32 > edit_val.val_max.uint32)||(*edit_val.p_val.p_uint32 < edit_val.val_min.uint32)){ //if out of range
+                        *edit_val.p_val.p_uint32 = edit_val.val_max.uint32;
+                    }
+                    break;
+                default:
+                    break;
                 }
             }
             if((pressed_time[BUTTON_DOWN].pressed > 0)&&(pressed_time[BUTTON_DOWN].pressed < navigation_task_period)){
-                if(*edit_val.p_val > edit_val.val_min){
-                    *edit_val.p_val -= uint16_pow(10, (uint16_t)edit_val.digit);
-                }
-                if((*edit_val.p_val > edit_val.val_max)||(*edit_val.p_val < edit_val.val_min)){ //if out of range
-                    *edit_val.p_val = edit_val.val_min;
+                switch(edit_val.type){
+                case VAL_INT8:
+                    if(*edit_val.p_val.p_int8 > edit_val.val_min.int8){
+                        *edit_val.p_val.p_int8 -= (int8_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_int8 > edit_val.val_max.int8)||(*edit_val.p_val.p_int8 < edit_val.val_min.int8)){ //if out of range
+                        *edit_val.p_val.p_int8 = edit_val.val_min.int8;
+                    }
+                    break;
+                case VAL_UINT8:
+                    if(*edit_val.p_val.p_uint8 > edit_val.val_min.uint8){
+                        *edit_val.p_val.p_uint8 -= (uint8_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_uint8 > edit_val.val_max.uint8)||(*edit_val.p_val.p_uint8 < edit_val.val_min.uint8)){ //if out of range
+                        *edit_val.p_val.p_uint8 = edit_val.val_min.uint8;
+                    }
+                    break;
+                case VAL_INT16:
+                    if(*edit_val.p_val.p_int16 > edit_val.val_min.int16){
+                        *edit_val.p_val.p_int16 -= (int16_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_int16 > edit_val.val_max.int16)||(*edit_val.p_val.p_int16 < edit_val.val_min.int16)){ //if out of range
+                        *edit_val.p_val.p_int16 = edit_val.val_min.int16;
+                    }
+                    break;
+                case VAL_UINT16:
+                    if(*edit_val.p_val.p_uint16 > edit_val.val_min.uint16){
+                        *edit_val.p_val.p_uint16 -= (uint16_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_uint16 > edit_val.val_max.uint16)||(*edit_val.p_val.p_uint16 < edit_val.val_min.uint16)){ //if out of range
+                        *edit_val.p_val.p_uint16 = edit_val.val_min.uint16;
+                    }
+                    break;
+                case VAL_INT32:
+                    if(*edit_val.p_val.p_int32 > edit_val.val_min.int32){
+                        *edit_val.p_val.p_int32 -= (int32_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_int32 > edit_val.val_max.int32)||(*edit_val.p_val.p_int32 < edit_val.val_min.int32)){ //if out of range
+                        *edit_val.p_val.p_int32 = edit_val.val_min.int32;
+                    }
+                    break;
+                case VAL_UINT32:
+                    if(*edit_val.p_val.p_uint32 > edit_val.val_min.uint32){
+                        *edit_val.p_val.p_uint32 -= (uint32_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_uint32 > edit_val.val_max.uint32)||(*edit_val.p_val.p_uint32 < edit_val.val_min.uint32)){ //if out of range
+                        *edit_val.p_val.p_uint32 = edit_val.val_min.uint32;
+                    }
+                    break;
+                default:
+                    break;
                 }
             }
             if((pressed_time[BUTTON_LEFT].pressed > 0)&&(pressed_time[BUTTON_LEFT].pressed < navigation_task_period)){
@@ -595,10 +687,10 @@ static void main_page_print(void){
     LCD_fill_area(1,1,49,62,LCD_COLOR_WHITE);
 
     // print values
-    sprintf(string, "%3.1f%s", dcts_meas[WTR_TMPR].value, dcts_meas[WTR_TMPR].unit_cyr);
+    sprintf(string, "%3.1f%s", (double)dcts_meas[WTR_TMPR].value, dcts_meas[WTR_TMPR].unit_cyr);
     LCD_set_xy(align_text_center(string, Font_7x10)-38,45);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    sprintf(string, "%3.1f%s", dcts_meas[WTR_LVL].value, dcts_meas[WTR_LVL].unit_cyr);
+    sprintf(string, "%3.1f%s", (double)dcts_meas[WTR_LVL].value, dcts_meas[WTR_LVL].unit_cyr);
     LCD_set_xy(align_text_center(string, Font_7x10)-38,5);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     sprintf(string, "Горячая");
@@ -621,7 +713,7 @@ static void main_page_print(void){
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     LCD_invert_area(52,53,127,63);
     if(dcts_meas[PREDBANNIK_HUM].valid){
-        sprintf(string, "%.1f%s/%.0f%s", dcts_meas[PREDBANNIK_TMPR].value, dcts_meas[PREDBANNIK_TMPR].unit_cyr, dcts_meas[PREDBANNIK_HUM].value, dcts_meas[PREDBANNIK_HUM].unit_cyr);
+        sprintf(string, "%.1f%s/%.0f%s", (double)dcts_meas[PREDBANNIK_TMPR].value, dcts_meas[PREDBANNIK_TMPR].unit_cyr, (double)dcts_meas[PREDBANNIK_HUM].value, dcts_meas[PREDBANNIK_HUM].unit_cyr);
     }else{
         sprintf(string, "Нет связи");
     }
@@ -633,7 +725,7 @@ static void main_page_print(void){
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     LCD_invert_area(52,32,127,42);
     if(dcts_meas[MOYKA_HUM].valid){
-        sprintf(string, "%.1f%s/%.0f%s", dcts_meas[MOYKA_TMPR].value, dcts_meas[MOYKA_TMPR].unit_cyr, dcts_meas[MOYKA_HUM].value, dcts_meas[MOYKA_HUM].unit_cyr);
+        sprintf(string, "%.1f%s/%.0f%s", (double)dcts_meas[MOYKA_TMPR].value, dcts_meas[MOYKA_TMPR].unit_cyr, (double)dcts_meas[MOYKA_HUM].value, dcts_meas[MOYKA_HUM].unit_cyr);
     }else{
         sprintf(string, "Нет связи");
     }
@@ -645,7 +737,7 @@ static void main_page_print(void){
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     LCD_invert_area(52,12,127,21);
     if(dcts_meas[PARILKA_TMPR].valid){
-        sprintf(string, "%.1f%s", dcts_meas[PARILKA_TMPR].value, dcts_meas[PARILKA_TMPR].unit_cyr);
+        sprintf(string, "%.1f%s", (double)dcts_meas[PARILKA_TMPR].value, dcts_meas[PARILKA_TMPR].unit_cyr);
     }else{
         sprintf(string, "Нет связи");
     }
@@ -729,7 +821,7 @@ static void meas_channels_print(void){
         sprintf(string, "%s:",dcts_meas[channel].name_cyr);
         LCD_set_xy(2,41-21*i);
         LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-        sprintf(string, "%.2f(%s) ", dcts_meas[channel].value, dcts_meas[channel].unit_cyr);
+        sprintf(string, "%.2f(%s) ", (double)dcts_meas[channel].value, dcts_meas[channel].unit_cyr);
         LCD_set_xy(align_text_right(string,Font_7x10),31-21*i);
         LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
         if(dcts_meas[channel].valid == 0){
@@ -750,12 +842,12 @@ static void calib_print (uint8_t start_channel){
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     LCD_invert_area(0,53,127,63);
     if(temp->Page == LVL_CALIB){
-        sprintf(string, "%.0f",dcts_meas[WTR_LVL_ADC].value);
+        sprintf(string, "%.0f",(double)dcts_meas[WTR_LVL_ADC].value);
         LCD_set_xy(align_text_right(string,Font_7x10),52);
         LCD_print(string,&Font_7x10,LCD_COLOR_WHITE);
         calib_table = config.params.lvl_calib_table;
     }else if(temp->Page == TMPR_CALIB){
-        sprintf(string, "%.0f",dcts_meas[WTR_TMPR_ADC].value);
+        sprintf(string, "%.0f",(double)dcts_meas[WTR_TMPR_ADC].value);
         LCD_set_xy(align_text_right(string,Font_7x10),52);
         LCD_print(string,&Font_7x10,LCD_COLOR_WHITE);
         calib_table = config.params.tmpr_calib_table;
@@ -795,11 +887,12 @@ static void calib_print (uint8_t start_channel){
             while(pressed_time[BUTTON_RIGHT].last_state == BUTTON_PRESSED){
             }
             navigation_style = DIGIT_EDIT;
+            edit_val.type = VAL_UINT16;
             edit_val.digit_max = 3;
             edit_val.digit = 0;
-            edit_val.val_min = 0;
-            edit_val.val_max = 0x4095;
-            edit_val.p_val = &calib_table[(uint8_t)selectedMenuItem->Page-start_channel];
+            edit_val.val_min.uint16 = 0;
+            edit_val.val_max.uint16 = 4095;
+            edit_val.p_val.p_uint16 = &calib_table[(uint8_t)selectedMenuItem->Page-start_channel];
         }
         break;
     case DIGIT_EDIT:
@@ -942,18 +1035,20 @@ static void mdb_print(void){
                 navigation_style = DIGIT_EDIT;
                 switch (selectedMenuItem->Page) {
                 case MDB_ADDR:
+                    edit_val.type = VAL_UINT16;
                     edit_val.digit_max = 2;
                     edit_val.digit = 0;
-                    edit_val.val_min = 0;
-                    edit_val.val_max = 255;
-                    edit_val.p_val = &config.params.mdb_address;
+                    edit_val.val_min.uint16 = 0;
+                    edit_val.val_max.uint16 = 255;
+                    edit_val.p_val.p_uint16 = &config.params.mdb_address;
                     break;
                 case MDB_BITRATE:
+                    edit_val.type = VAL_UINT16;
                     edit_val.digit_max = 0;
                     edit_val.digit = 0;
-                    edit_val.val_min = 0;
-                    edit_val.val_max = 13;
-                    edit_val.p_val = &bitrate_array_pointer;
+                    edit_val.val_min.uint16 = 0;
+                    edit_val.val_max.uint16 = 13;
+                    edit_val.p_val.p_uint16 = &bitrate_array_pointer;
                     break;
                 }
             }
@@ -1040,18 +1135,20 @@ static void display_print(void){
             navigation_style = DIGIT_EDIT;
             switch (selectedMenuItem->Page) {
             case LIGHT_LVL:
+                edit_val.type = VAL_UINT16;
                 edit_val.digit_max = 1;
                 edit_val.digit = 0;
-                edit_val.val_min = 0;
-                edit_val.val_max = 10;
-                edit_val.p_val = &LCD.backlight_lvl;
+                edit_val.val_min.uint16 = 0;
+                edit_val.val_max.uint16 = 10;
+                edit_val.p_val.p_uint16 = &LCD.backlight_lvl;
                 break;
             case AUTO_OFF:
+                edit_val.type = VAL_UINT16;
                 edit_val.digit_max = 1;
                 edit_val.digit = 0;
-                edit_val.val_min = 0;
-                edit_val.val_max = 60;
-                edit_val.p_val = &LCD.auto_off;
+                edit_val.val_min.uint16 = 0;
+                edit_val.val_max.uint16 = 60;
+                edit_val.p_val.p_uint16 = &LCD.auto_off;
                 break;
             default:
                 break;
@@ -1185,46 +1282,52 @@ static void rtc_print(void){
             navigation_style = DIGIT_EDIT;
             switch (selectedMenuItem->Page) {
             case TIME_HOUR:
+                edit_val.type = VAL_UINT8;
                 edit_val.digit_max = 1;
                 edit_val.digit = 0;
-                edit_val.val_min = 0;
-                edit_val.val_max = 23;
-                edit_val.p_val = &dcts.dcts_rtc.hour;
+                edit_val.val_min.uint8 = 0;
+                edit_val.val_max.uint8 = 23;
+                edit_val.p_val.p_uint8 = &dcts.dcts_rtc.hour;
                 break;
             case TIME_MIN:
+                edit_val.type = VAL_UINT8;
                 edit_val.digit_max = 1;
                 edit_val.digit = 0;
-                edit_val.val_min = 0;
-                edit_val.val_max = 59;
-                edit_val.p_val = &dcts.dcts_rtc.minute;
+                edit_val.val_min.uint8 = 0;
+                edit_val.val_max.uint8 = 59;
+                edit_val.p_val.p_uint8 = &dcts.dcts_rtc.minute;
                 break;
             case TIME_SEC:
+                edit_val.type = VAL_UINT8;
                 edit_val.digit_max = 1;
                 edit_val.digit = 0;
-                edit_val.val_min = 0;
-                edit_val.val_max = 59;
-                edit_val.p_val = &dcts.dcts_rtc.second;
+                edit_val.val_min.uint8 = 0;
+                edit_val.val_max.uint8 = 59;
+                edit_val.p_val.p_uint8 = &dcts.dcts_rtc.second;
                 break;
             case DATE_DAY:
+                edit_val.type = VAL_UINT8;
                 edit_val.digit_max = 1;
                 edit_val.digit = 0;
-                edit_val.val_min = 1;
-                edit_val.val_max = 31;
-                edit_val.p_val = &dcts.dcts_rtc.day;
+                edit_val.val_min.uint8 = 1;
+                edit_val.val_max.uint8 = 31;
+                edit_val.p_val.p_uint8 = &dcts.dcts_rtc.day;
                 break;
             case DATE_MONTH:
+                edit_val.type = VAL_UINT8;
                 edit_val.digit_max = 1;
                 edit_val.digit = 0;
-                edit_val.val_min = 1;
-                edit_val.val_max = 12;
-                edit_val.p_val = &dcts.dcts_rtc.month;
+                edit_val.val_min.uint8 = 1;
+                edit_val.val_max.uint8 = 12;
+                edit_val.p_val.p_uint8 = &dcts.dcts_rtc.month;
                 break;
             case DATE_YEAR:
+                edit_val.type = VAL_UINT16;
                 edit_val.digit_max = 3;
                 edit_val.digit = 0;
-                edit_val.val_min = 2000;
-                edit_val.val_max = 3000;
-                edit_val.p_val = &dcts.dcts_rtc.year;
+                edit_val.val_min.uint16 = 2000;
+                edit_val.val_max.uint16 = 3000;
+                edit_val.p_val.p_uint16 = &dcts.dcts_rtc.year;
                 break;
             default:
                 break;
@@ -1242,13 +1345,6 @@ static void rtc_print(void){
         print_enter_ok();
         LCD_invert_area(127-(edit_val.digit+1)*Font_7x10.FontWidth,27,126-edit_val.digit*Font_7x10.FontWidth,38);
 
-        /*switch (selectedMenuItem->Page) {
-        case MDB_BITRATE:
-            sprintf(string,"%d",bitrate_array[bitrate_array_pointer]*100);
-            LCD_invert_area(126 - (uint8_t)strlen(string)*Font_7x10.FontWidth,27,126,38);
-            break;
-        default:
-        }*/
         break;
     }
 
@@ -1405,8 +1501,8 @@ void uart_task(void const * argument){
     }
 }
 
-uint16_t uint16_pow(uint16_t x, uint16_t pow){
-    uint16_t result = 1;
+uint32_t uint32_pow(uint16_t x, uint8_t pow){
+    uint32_t result = 1;
     while(pow){
         result *= x;
         pow--;
