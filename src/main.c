@@ -221,7 +221,7 @@ int main(void){
     MX_IWDG_Init();
 #endif //RELEASE
 
-    osThreadDef(rtc_task, rtc_task, osPriorityNormal, 0, 364);
+    osThreadDef(rtc_task, rtc_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);
     rtcTaskHandle = osThreadCreate(osThread(rtc_task), NULL);
 
     osThreadDef(display_task, display_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE*4);
@@ -239,7 +239,7 @@ int main(void){
     osThreadDef(navigation_task, navigation_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);
     navigationtTaskHandle = osThreadCreate(osThread(navigation_task), NULL);
 
-    osThreadDef(uart_task, uart_task, osPriorityHigh, 0, configMINIMAL_STACK_SIZE*4);
+    osThreadDef(uart_task, uart_task, osPriorityHigh, 0, configMINIMAL_STACK_SIZE*2);
     uartTaskHandle = osThreadCreate(osThread(uart_task), NULL);
 
 
@@ -399,10 +399,13 @@ void rtc_task(void const * argument){
 #define display_task_period 500
 void display_task(void const * argument){
     (void)argument;
+    //TaskStatus_t monitor_buf[8];
+    //u32 total_runtime;
     menu_init();
     LCD_init();
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
+        //uxTaskGetSystemState(monitor_buf, 8, (uint32_t*)&total_runtime);
 #if RELEASE
         HAL_IWDG_Refresh(&hiwdg);
 #endif //RELEASE
@@ -1434,6 +1437,24 @@ void am2302_task (void const * argument){
         }
         taskEXIT_CRITICAL();
 
+        am2302.hum = 0;
+        am2302.tmpr = 0;
+        am2302.hum |= ((int16_t)dcts.dcts_rtc.hour << 8);
+        am2302.hum |= (int16_t)dcts.dcts_rtc.minute;
+        am2302.tmpr |= ((int16_t)dcts.dcts_rtc.second << 8);
+        GPIO_InitTypeDef GPIO_InitStruct;
+        GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+        GPIO_InitStruct.Pull = GPIO_PULLUP;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+        GPIO_InitStruct.Pin = am2302_pin[0].pin;
+        HAL_GPIO_Init(am2302_pin[0].port, &GPIO_InitStruct);
+        taskENTER_CRITICAL();
+        HAL_GPIO_WritePin (am2302_pin[0].port, am2302_pin[0].pin, GPIO_PIN_RESET);
+        us_tim_delay(500);
+        HAL_GPIO_WritePin (am2302_pin[0].port, am2302_pin[0].pin, GPIO_PIN_SET);
+        taskEXIT_CRITICAL();
+        am2302_send(am2302, 0);
+        osDelay(50);
         am2302 = am2302_get(0);
         taskENTER_CRITICAL();
         if(am2302.error == 1){
