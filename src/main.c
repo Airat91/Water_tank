@@ -1404,44 +1404,71 @@ static void print_change(void){
  * @param argument
  */
 
-#define am2302_task_period 3000
+#define am2302_task_period 1000
 void am2302_task (void const * argument){
     (void)argument;
     uint32_t last_wake_time = osKernelSysTick();
+    uint8_t tick = 0;
     am2302_init();
-    am2302_data_t am2302 = {0};
+    am2302_data_t time = {0};
+    am2302_data_t predbannik;
+    uint8_t predbannik_lost_con_cnt = 0;
+    uint32_t predbannik_recieved = 0;
+    uint32_t predbannik_lost = 0;
+    am2302_data_t moyka;
+    uint8_t moyka_lost_con_cnt = 0;
+    uint32_t moyka_recieved = 0;
+    uint32_t moyka_lost = 0;
+    am2302_data_t parilka;
+    uint8_t parilka_lost_con_cnt = 0;
+    uint32_t parilka_recieved = 0;
+    uint32_t parilka_lost = 0;
     while(1){
-        am2302 = am2302_get(2);
-        taskENTER_CRITICAL();
-        if(am2302.error == 1){
-            dcts_meas[PREDBANNIK_HUM].valid = FALSE;
-            dcts_meas[PREDBANNIK_TMPR].valid = FALSE;
-        }else{
-            dcts_meas[PREDBANNIK_HUM].value = (float)am2302.hum/10;
-            dcts_meas[PREDBANNIK_HUM].valid = TRUE;
-            dcts_meas[PREDBANNIK_TMPR].value = (float)am2302.tmpr/10;
-            dcts_meas[PREDBANNIK_TMPR].valid = TRUE;
-        }
-        taskEXIT_CRITICAL();
+        if(tick == 2){
+            predbannik = am2302_get(2);
+            taskENTER_CRITICAL();
+            if(predbannik.error == 1){
+                predbannik_lost++;
+                predbannik_lost_con_cnt++;
+                if(predbannik_lost_con_cnt > 2){
+                    dcts_meas[PREDBANNIK_HUM].valid = FALSE;
+                    dcts_meas[PREDBANNIK_TMPR].valid = FALSE;
+                }
+            }else{
+                predbannik_recieved++;
+                predbannik_lost_con_cnt = 0;
+                dcts_meas[PREDBANNIK_HUM].value = (float)predbannik.hum/10;
+                dcts_meas[PREDBANNIK_HUM].valid = TRUE;
+                dcts_meas[PREDBANNIK_TMPR].value = (float)predbannik.tmpr/10;
+                dcts_meas[PREDBANNIK_TMPR].valid = TRUE;
+            }
+            taskEXIT_CRITICAL();
 
-        am2302 = am2302_get(1);
-        taskENTER_CRITICAL();
-        if(am2302.error == 1){
-            dcts_meas[MOYKA_HUM].valid = FALSE;
-            dcts_meas[MOYKA_TMPR].valid = FALSE;
-        }else{
-            dcts_meas[MOYKA_HUM].value = (float)am2302.hum/10;
-            dcts_meas[MOYKA_HUM].valid = TRUE;
-            dcts_meas[MOYKA_TMPR].value = (float)am2302.tmpr/10;
-            dcts_meas[MOYKA_TMPR].valid = TRUE;
+            moyka = am2302_get(1);
+            taskENTER_CRITICAL();
+            if(moyka.error == 1){
+                moyka_lost++;
+                moyka_lost_con_cnt++;
+                if(moyka_lost_con_cnt > 2){
+                    dcts_meas[MOYKA_HUM].valid = FALSE;
+                    dcts_meas[MOYKA_TMPR].valid = FALSE;
+                }
+            }else{
+                moyka_recieved++;
+                moyka_lost_con_cnt = 0;
+                dcts_meas[MOYKA_HUM].value = (float)moyka.hum/10;
+                dcts_meas[MOYKA_HUM].valid = TRUE;
+                dcts_meas[MOYKA_TMPR].value = (float)moyka.tmpr/10;
+                dcts_meas[MOYKA_TMPR].valid = TRUE;
+            }
+            taskEXIT_CRITICAL();
         }
-        taskEXIT_CRITICAL();
 
-        am2302.hum = 0;
-        am2302.tmpr = 0;
-        am2302.hum |= ((int16_t)dcts.dcts_rtc.hour << 8);
-        am2302.hum |= (int16_t)dcts.dcts_rtc.minute;
-        am2302.tmpr |= ((int16_t)dcts.dcts_rtc.second << 8);
+        time.hum = 0;
+        time.tmpr = 0;
+        time.hum |= ((int16_t)dcts.dcts_rtc.hour << 8);
+        time.hum |= (int16_t)dcts.dcts_rtc.minute;
+        time.tmpr |= ((int16_t)dcts.dcts_rtc.second << 8);
         GPIO_InitTypeDef GPIO_InitStruct;
         GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
         GPIO_InitStruct.Pull = GPIO_PULLUP;
@@ -1453,17 +1480,29 @@ void am2302_task (void const * argument){
         us_tim_delay(500);
         HAL_GPIO_WritePin (am2302_pin[0].port, am2302_pin[0].pin, GPIO_PIN_SET);
         taskEXIT_CRITICAL();
-        am2302_send(am2302, 0);
+        am2302_send(time, 0);
         osDelay(50);
-        am2302 = am2302_get(0);
+
+        parilka = am2302_get(0);
         taskENTER_CRITICAL();
-        if(am2302.error == 1){
-            dcts_meas[PARILKA_TMPR].valid = FALSE;
+        if(parilka.error == 1){
+            parilka_lost++;
+            parilka_lost_con_cnt++;
+            if(parilka_lost_con_cnt > 2){
+                dcts_meas[PARILKA_TMPR].valid = FALSE;
+            }
         }else{
-            dcts_meas[PARILKA_TMPR].value = (float)am2302.tmpr/10;
+            parilka_recieved++;
+            parilka_lost_con_cnt = 0;
+            dcts_meas[PARILKA_TMPR].value = (float)parilka.tmpr/10;
             dcts_meas[PARILKA_TMPR].valid = TRUE;
         }
         taskEXIT_CRITICAL();
+
+        tick++;
+        if(tick > 2){
+            tick = 0;
+        }
 
         osDelayUntil(&last_wake_time, am2302_task_period);
     }
