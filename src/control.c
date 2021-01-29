@@ -196,7 +196,6 @@ void control_task( const void *parameters){
         if(tick > sensor_state.buff_size){
             reg_on_control();
         }
-
         HAL_IWDG_Refresh(&hiwdg);
         osDelayUntil(&last_wake_time,CONTROL_TASK_PERIOD);
     }

@@ -204,7 +204,7 @@ void am2302_task(void const * argument);
 void rtc_task(void const * argument);
 void navigation_task(void const * argument);
 void uart_task(void const * argument);
-int RTC_set(rtc_t dcts_rtc);
+//int RTC_set(rtc_t dcts_rtc);
 
 uint32_t us_tim_get_value(void);
 void us_tim_delay(uint32_t us);
