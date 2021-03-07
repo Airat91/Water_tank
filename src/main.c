@@ -72,6 +72,7 @@
 
 #define FEEDER 0
 #define RELEASE 1
+# define PARILKA_DCTS 0
 
 typedef enum{
     READ_FLOAT_SIGNED = 0,
@@ -1491,8 +1492,26 @@ void am2302_task (void const * argument){
                 dcts_meas[MOYKA_TMPR].valid = TRUE;
             }
             taskEXIT_CRITICAL();
-        }
 
+#if PARILKA_DCTS == 0
+            parilka = am2302_get(0);
+            taskENTER_CRITICAL();
+            if(parilka.error == 1){
+                parilka_lost++;
+                parilka_lost_con_cnt++;
+                if(parilka_lost_con_cnt > 2){
+                    dcts_meas[PARILKA_TMPR].valid = FALSE;
+                }
+            }else{
+                parilka_recieved++;
+                parilka_lost_con_cnt = 0;
+                dcts_meas[PARILKA_TMPR].value = (float)parilka.tmpr/10;
+                dcts_meas[PARILKA_TMPR].valid = TRUE;
+            }
+            taskEXIT_CRITICAL();
+#endif // PARILKA_DCTS
+        }
+#if PARILKA_DCTS
         if(dcts.dcts_rtc.state == RTC_STATE_READY){
             time.hum = 0;
             time.tmpr = 0;
@@ -1513,7 +1532,6 @@ void am2302_task (void const * argument){
             am2302_send(time, 0);
             osDelay(50);
         }
-
         parilka = am2302_get(0);
         taskENTER_CRITICAL();
         if(parilka.error == 1){
@@ -1529,6 +1547,7 @@ void am2302_task (void const * argument){
             dcts_meas[PARILKA_TMPR].valid = TRUE;
         }
         taskEXIT_CRITICAL();
+#endif // PARILKA_DCTS
 
         tick++;
         if(tick > 2){
