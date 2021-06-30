@@ -65,6 +65,7 @@
 #include "flash.h"
 #include "uart.h"
 #include "modbus.h"
+#include "ds18b20.h"
 
 /**
   * @defgroup MAIN
@@ -137,7 +138,7 @@ static const uint16_t def_lvl_calib_table[6] = {
     1829,
     2193,
 };
-static const uint16_t def_tmpr_calib_table[11] = {
+/*static const uint16_t def_tmpr_calib_table[11] = {
     3137,
     2727,
     2275,
@@ -149,7 +150,7 @@ static const uint16_t def_tmpr_calib_table[11] = {
     454,
     341,
     258,
-};
+};*/
 static const uart_bitrate_t bitrate_array[14] = {
     BITRATE_600,
     BITRATE_1200,
@@ -171,7 +172,7 @@ static uint16_t bitrate_array_pointer = 0;
 void dcts_init (void) {
 
     dcts.dcts_id = DCTS_ID_COMBINED;
-    strcpy (dcts.dcts_ver, "1.0.3");
+    strcpy (dcts.dcts_ver, "1.1.0");
     strcpy (dcts.dcts_name, "Banya");
     strcpy (dcts.dcts_name_cyr, "Баня");
     dcts.dcts_address = 0x0A;
@@ -243,6 +244,9 @@ int main(void){
 
     osThreadDef(uart_task, uart_task, osPriorityHigh, 0, configMINIMAL_STACK_SIZE*2);
     uartTaskHandle = osThreadCreate(osThread(uart_task), NULL);
+
+    osThreadDef(ds18b20_task, ds18b20_task, osPriorityHigh, 0, configMINIMAL_STACK_SIZE);
+    uartTaskHandle = osThreadCreate(osThread(ds18b20_task), NULL);
 
 
     /* Start scheduler */
@@ -531,6 +535,9 @@ void display_task(void const * argument){
     }
 }
 
+#define BUTTON_PRESS_TIME 1000
+#define BUTTON_PRESS_TIMEOUT 10000
+#define BUTTON_CLICK_TIME 10
 #define navigation_task_period 20
 void navigation_task (void const * argument){
     (void)argument;
@@ -538,24 +545,24 @@ void navigation_task (void const * argument){
     while(1){
         switch (navigation_style){
         case MENU_NAVIGATION:
-            if((pressed_time[BUTTON_UP].pressed > 0)&&(pressed_time[BUTTON_UP].pressed < navigation_task_period)){
+            if(button_click(BUTTON_UP, BUTTON_CLICK_TIME)){
                 menuChange(selectedMenuItem->Previous);
             }
-            if((pressed_time[BUTTON_DOWN].pressed > 0)&&(pressed_time[BUTTON_DOWN].pressed < navigation_task_period)){
+            if(button_click(BUTTON_DOWN, BUTTON_CLICK_TIME)){
                 menuChange(selectedMenuItem->Next);
             }
-            if((pressed_time[BUTTON_LEFT].pressed > 0)&&(pressed_time[BUTTON_LEFT].pressed < navigation_task_period)){
+            if(button_click(BUTTON_LEFT, BUTTON_CLICK_TIME)){
                 menuChange(selectedMenuItem->Parent);
             }
-            if((pressed_time[BUTTON_RIGHT].pressed > 0)&&(pressed_time[BUTTON_RIGHT].pressed < navigation_task_period)){
+            if(button_click(BUTTON_RIGHT, BUTTON_CLICK_TIME)){
                 menuChange(selectedMenuItem->Child);
             }
-            if((pressed_time[BUTTON_OK].pressed > 0)&&(pressed_time[BUTTON_OK].pressed < navigation_task_period)){
+            if(button_click(BUTTON_OK, BUTTON_CLICK_TIME)){
                 menuChange(selectedMenuItem->Child);
             }
             break;
         case DIGIT_EDIT:
-            if((pressed_time[BUTTON_UP].pressed > 0)&&(pressed_time[BUTTON_UP].pressed < navigation_task_period)){
+            if(button_click(BUTTON_UP, BUTTON_CLICK_TIME)){
                 switch(edit_val.type){
                 case VAL_INT8:
                     if(*edit_val.p_val.p_int8 < edit_val.val_max.int8){
@@ -609,7 +616,7 @@ void navigation_task (void const * argument){
                     break;
                 }
             }
-            if((pressed_time[BUTTON_DOWN].pressed > 0)&&(pressed_time[BUTTON_DOWN].pressed < navigation_task_period)){
+            if(button_click(BUTTON_DOWN, BUTTON_CLICK_TIME)){
                 switch(edit_val.type){
                 case VAL_INT8:
                     if(*edit_val.p_val.p_int8 > edit_val.val_min.int8){
@@ -663,30 +670,30 @@ void navigation_task (void const * argument){
                     break;
                 }
             }
-            if((pressed_time[BUTTON_LEFT].pressed > 0)&&(pressed_time[BUTTON_LEFT].pressed < navigation_task_period)){
+            if(button_click(BUTTON_LEFT, BUTTON_CLICK_TIME)){
                 if(edit_val.digit < edit_val.digit_max){
                     edit_val.digit++;
                 }
             }
-            if((pressed_time[BUTTON_RIGHT].pressed > 0)&&(pressed_time[BUTTON_RIGHT].pressed < navigation_task_period)){
+            if(button_click(BUTTON_RIGHT, BUTTON_CLICK_TIME)){
                 if(edit_val.digit > 0){
                     edit_val.digit--;
                 }
             }
-            if((pressed_time[BUTTON_OK].pressed > navigation_task_period)){
-                while(pressed_time[BUTTON_OK].last_state == BUTTON_PRESSED){
-                }
+            if(button_click(BUTTON_OK, BUTTON_CLICK_TIME)){
+                /*while(pressed_time[BUTTON_OK].last_state == BUTTON_PRESSED){
+                }*/
                 navigation_style = MENU_NAVIGATION;
             }
 
             break;
         }
-        if((pressed_time[BUTTON_BREAK].pressed > 0)&&(pressed_time[BUTTON_BREAK].pressed < navigation_task_period)){
+        if(button_click(BUTTON_BREAK, BUTTON_CLICK_TIME)){
             if(LCD.auto_off == 0){
                 LCD_backlight_toggle();
             }
         }
-        if((pressed_time[BUTTON_SET].pressed > 0)&&(pressed_time[BUTTON_SET].pressed < navigation_task_period)){
+        if(button_click(BUTTON_SET, BUTTON_CLICK_TIME)){
             save_params();
         }
         osDelayUntil(&last_wake_time, navigation_task_period);
@@ -709,6 +716,7 @@ static void error_page_print(menu_page_t page){
 static void main_page_print(void){
     char string[100];
     const float vmax = 114.0;
+    static float last_wtr_tmp = 0.0f;
     uint8_t high_lev = 0;
 
     // print water tank
@@ -716,7 +724,10 @@ static void main_page_print(void){
     LCD_fill_area(1,1,49,62,LCD_COLOR_WHITE);
 
     // print values
-    sprintf(string, "%3.1f%s", (double)dcts_meas[WTR_TMPR].value, dcts_meas[WTR_TMPR].unit_cyr);
+    if(dcts_meas[WTR_TMPR].valid){
+        last_wtr_tmp = dcts_meas[WTR_TMPR].value;
+    }
+    sprintf(string, "%3.1f%s", (double)last_wtr_tmp, dcts_meas[WTR_TMPR].unit_cyr);
     LCD_set_xy(align_text_center(string, Font_7x10)-38,45);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     sprintf(string, "%3.1f%s", (double)dcts_meas[WTR_LVL].value, dcts_meas[WTR_LVL].unit_cyr);
@@ -875,12 +886,12 @@ static void calib_print (uint8_t start_channel){
         LCD_set_xy(align_text_right(string,Font_7x10),52);
         LCD_print(string,&Font_7x10,LCD_COLOR_WHITE);
         calib_table = config.params.lvl_calib_table;
-    }else if(temp->Page == TMPR_CALIB){
+    }/*else if(temp->Page == TMPR_CALIB){
         sprintf(string, "%.0f",(double)dcts_meas[WTR_TMPR_ADC].value);
         LCD_set_xy(align_text_right(string,Font_7x10),52);
         LCD_print(string,&Font_7x10,LCD_COLOR_WHITE);
         calib_table = config.params.tmpr_calib_table;
-    }
+    }*/
 
     temp = selectedMenuItem->Previous;
     sprintf(string, temp->Text);
@@ -1772,7 +1783,7 @@ static void restore_params(void){
         config.params.mdb_address = dcts.dcts_address;
         config.params.mdb_bitrate = BITRATE_56000;
         memcpy(config.params.lvl_calib_table, def_lvl_calib_table, 6);
-        memcpy(config.params.tmpr_calib_table, def_tmpr_calib_table, 11);
+        //memcpy(config.params.tmpr_calib_table, def_tmpr_calib_table, 11);
     }
     for(bitrate_array_pointer = 0; bitrate_array_pointer < 14; bitrate_array_pointer++){
         if(bitrate_array[bitrate_array_pointer] == config.params.mdb_bitrate){

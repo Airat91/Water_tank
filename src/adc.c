@@ -79,12 +79,12 @@ int adc_init (void){
         result = -3;
     }
     //Configure WTR_TMP Channel
-    sConfigInjected.InjectedChannel = ADC_CHANNEL_5;
+    /*sConfigInjected.InjectedChannel = ADC_CHANNEL_5;
     sConfigInjected.InjectedRank = ADC_INJECTED_RANK_3;
     if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
     {
         result = -4;
-    }
+    }*/
     //Configure TMP Channel
     sConfigInjected.InjectedChannel = ADC_CHANNEL_VREFINT;
     sConfigInjected.InjectedRank = ADC_INJECTED_RANK_4;
@@ -129,8 +129,8 @@ void adc_gpio_init (void){
     HAL_GPIO_Init(PWR_PORT, &GPIO_InitStruct);
     GPIO_InitStruct.Pin = WTR_LEV_PIN;
     HAL_GPIO_Init(WTR_LEV_PORT, &GPIO_InitStruct);
-    GPIO_InitStruct.Pin = WTR_TMP_PIN;
-    HAL_GPIO_Init(WTR_TMP_PORT, &GPIO_InitStruct);
+    /*GPIO_InitStruct.Pin = WTR_TMP_PIN;
+    HAL_GPIO_Init(WTR_TMP_PORT, &GPIO_InitStruct);*/
 }
 /**
  * @brief Deinit ADC gpio
@@ -139,7 +139,7 @@ void adc_gpio_init (void){
 void adc_gpio_deinit (void){
     HAL_GPIO_DeInit(PWR_PORT,PWR_PIN);
     HAL_GPIO_DeInit(WTR_LEV_PORT,WTR_LEV_PIN);
-    HAL_GPIO_DeInit(WTR_TMP_PORT,WTR_TMP_PIN);
+    //HAL_GPIO_DeInit(WTR_TMP_PORT,WTR_TMP_PIN);
 }
 /**
  * @brief Measure ADC channels and write values to DCTS
@@ -150,7 +150,7 @@ void adc_task(void const * argument){
     (void)argument;
     uint16_t pwr[ADC_BUF_SIZE];
     uint16_t wtr_lev[ADC_BUF_SIZE];
-    uint16_t wtr_tmp[ADC_BUF_SIZE];
+    //uint16_t wtr_tmp[ADC_BUF_SIZE];
     uint16_t vref[ADC_BUF_SIZE];
     uint8_t tick = 0;
     adc_init();
@@ -158,19 +158,19 @@ void adc_task(void const * argument){
     while(1){
         uint32_t pwr_sum = 0;
         uint32_t wtr_lev_sum = 0;
-        uint32_t wtr_tmp_sum = 0;
+        //uint32_t wtr_tmp_sum = 0;
         uint32_t vref_sum = 0;
 
 
         pwr[tick] = (uint16_t)hadc1.Instance->JDR1;
         wtr_lev[tick] = (uint16_t)hadc1.Instance->JDR2;
-        wtr_tmp[tick] = (uint16_t)hadc1.Instance->JDR3;
+        //wtr_tmp[tick] = (uint16_t)hadc1.Instance->JDR3;
         vref[tick] = (uint16_t)hadc1.Instance->JDR4;
 
         for(uint8_t i = 0; i < ADC_BUF_SIZE; i++){
             pwr_sum += pwr[i];
             wtr_lev_sum += wtr_lev[i];
-            wtr_tmp_sum += wtr_tmp[i];
+            //wtr_tmp_sum += wtr_tmp[i];
             vref_sum += vref[i];
         }
 
@@ -185,9 +185,9 @@ void adc_task(void const * argument){
         dcts_meas[WTR_LVL_V].value = dcts_meas[WTR_LVL_ADC].value*ADC_VREFINT/dcts_meas[VREFINT_ADC].value;
         dcts_meas[WTR_LVL].value =adc_lvl_calc(dcts_meas[WTR_LVL_ADC].value);
 
-        dcts_meas[WTR_TMPR_ADC].value = (float)wtr_tmp_sum/ADC_BUF_SIZE;
+        /*dcts_meas[WTR_TMPR_ADC].value = (float)wtr_tmp_sum/ADC_BUF_SIZE;
         dcts_meas[WTR_TMPR_V].value = dcts_meas[WTR_TMPR_ADC].value*ADC_VREFINT/dcts_meas[VREFINT_ADC].value;
-        dcts_meas[WTR_TMPR].value = adc_tmpr_calc(dcts_meas[WTR_TMPR_ADC].value);
+        dcts_meas[WTR_TMPR].value = adc_tmpr_calc(dcts_meas[WTR_TMPR_ADC].value);*/
 
         dcts_meas[VREFINT_ADC].valid = TRUE;
         dcts_meas[VREF_V].valid = TRUE;
@@ -198,13 +198,13 @@ void adc_task(void const * argument){
         }else{
             dcts_meas[WTR_LVL].valid = FALSE;
         }
-        dcts_meas[WTR_TMPR_ADC].valid = TRUE;
+        /*dcts_meas[WTR_TMPR_ADC].valid = TRUE;
         dcts_meas[WTR_TMPR_V].valid = TRUE;
         if((dcts_meas[WTR_TMPR_V].value > 0.1f)&&(dcts_meas[WTR_TMPR_V].value < 3.2f)){
             dcts_meas[WTR_TMPR].valid = TRUE;
         }else{
             dcts_meas[WTR_TMPR].valid = FALSE;
-        }
+        }*/
 
         taskEXIT_CRITICAL();
 
@@ -220,7 +220,7 @@ float adc_tmpr_calc(float adc){
     float tmpr = 0.0f;
     float a = 1.0f;
     float b = 0.0f;
-    for(uint8_t i = 0; i < 10; i++){
+    /*for(uint8_t i = 0; i < 10; i++){
         if((adc <= config.params.tmpr_calib_table[i])&&(adc > config.params.tmpr_calib_table[i+1])){
             a = 10.0f/(config.params.tmpr_calib_table[i+1]-config.params.tmpr_calib_table[i]);
             b = 10.0f*i - a*config.params.tmpr_calib_table[i];
@@ -233,7 +233,7 @@ float adc_tmpr_calc(float adc){
     if(adc <= config.params.tmpr_calib_table[10]){
         a = 10.0f/(config.params.tmpr_calib_table[10]-config.params.tmpr_calib_table[9]);
         b = 100.0f - a*config.params.tmpr_calib_table[10];
-    }
+    }*/
     tmpr = a*adc + b;
     return tmpr;
 }

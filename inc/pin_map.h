@@ -16,6 +16,8 @@
 #define WTR_LEV_PIN     GPIO_PIN_4
 #define WTR_TMP_PORT    GPIOA
 #define WTR_TMP_PIN     GPIO_PIN_5
+#define     DS18B20_PORT    WTR_TMP_PORT
+#define     DS18B20_PIN     WTR_TMP_PIN
 
 #define OK_PORT         GPIOA
 #define OK_PIN          GPIO_PIN_8
