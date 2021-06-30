@@ -44,14 +44,14 @@ MAKE_MENU       (main_page,     NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     
     MAKE_MENU   (meas_ch_10,    meas_ch_11,     meas_ch_9,      meas_channels,  NULL_ENTRY,     0,          MEAS_CH_10,         0x00);
     MAKE_MENU   (meas_ch_11,    meas_ch_12,     meas_ch_10,     meas_channels,  NULL_ENTRY,     0,          MEAS_CH_11,         0x00);
     MAKE_MENU   (meas_ch_12,    meas_ch_0,      meas_ch_11,     meas_channels,  NULL_ENTRY,     0,          MEAS_CH_12,         0x00);
-  MAKE_MENU     (lvl_calib,     tmpr_calib,     meas_channels,  main_page,      lvl_0,          6,          LVL_CALIB,          "Калиб. уровня");
+  MAKE_MENU     (lvl_calib,     connection,     meas_channels,  main_page,      lvl_0,          6,          LVL_CALIB,          "Калиб. уровня");
     MAKE_MENU   (lvl_0,         lvl_20,         lvl_100,        lvl_calib,      NULL_ENTRY,     0,          LVL_0,              "АЦП при 0л");
     MAKE_MENU   (lvl_20,        lvl_40,         lvl_0,          lvl_calib,      NULL_ENTRY,     0,          LVL_20,             "АЦП при 20л");
     MAKE_MENU   (lvl_40,        lvl_60,         lvl_20,         lvl_calib,      NULL_ENTRY,     0,          LVL_40,             "АЦП при 40л");
     MAKE_MENU   (lvl_60,        lvl_80,         lvl_40,         lvl_calib,      NULL_ENTRY,     0,          LVL_60,             "АЦП при 60л");
     MAKE_MENU   (lvl_80,        lvl_100,        lvl_60,         lvl_calib,      NULL_ENTRY,     0,          LVL_80,             "АЦП при 80л");
     MAKE_MENU   (lvl_100,       lvl_0,          lvl_80,         lvl_calib,      NULL_ENTRY,     0,          LVL_100,            "АЦП при 100л");
-  MAKE_MENU     (tmpr_calib,    connection,    lvl_calib,       main_page,      adc_0,          11,         TMPR_CALIB,         "Калиб. темпер.");
+  /*MAKE_MENU     (tmpr_calib,    connection,    lvl_calib,       main_page,      adc_0,          11,         TMPR_CALIB,         "Калиб. темпер.");
     MAKE_MENU   (adc_0,         adc_10,         adc_100,        tmpr_calib,     NULL_ENTRY,     0,          ADC_0,              "АЦП при 0°C");
     MAKE_MENU   (adc_10,        adc_20,         adc_0,          tmpr_calib,     NULL_ENTRY,     0,          ADC_10,             "АЦП при 10°C");
     MAKE_MENU   (adc_20,        adc_30,         adc_10,         tmpr_calib,     NULL_ENTRY,     0,          ADC_20,             "АЦП при 20°C");
@@ -62,8 +62,8 @@ MAKE_MENU       (main_page,     NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     
     MAKE_MENU   (adc_70,        adc_80,         adc_60,         tmpr_calib,     NULL_ENTRY,     0,          ADC_70,             "АЦП при 70°C");
     MAKE_MENU   (adc_80,        adc_90,         adc_70,         tmpr_calib,     NULL_ENTRY,     0,          ADC_80,             "АЦП при 80°C");
     MAKE_MENU   (adc_90,        adc_100,        adc_80,         tmpr_calib,     NULL_ENTRY,     0,          ADC_90,             "АЦП при 90°C");
-    MAKE_MENU   (adc_100,       adc_0,          adc_90,         tmpr_calib,     NULL_ENTRY,     0,          ADC_100,            "АЦП при 100°C");
-  MAKE_MENU     (connection,    display,        tmpr_calib,     main_page,      mdb_addr,       8,          CONNECTION,         "Связь");
+    MAKE_MENU   (adc_100,       adc_0,          adc_90,         tmpr_calib,     NULL_ENTRY,     0,          ADC_100,            "АЦП при 100°C");*/
+  MAKE_MENU     (connection,    display,        lvl_calib,      main_page,      mdb_addr,       8,          CONNECTION,         "Связь");
     MAKE_MENU   (mdb_addr,      bitrate,        noise_err,      connection,     NULL_ENTRY,     0,          MDB_ADDR,           "Адрес ModBUS");
     MAKE_MENU   (bitrate,       recieved_cnt,   mdb_addr,       connection,     NULL_ENTRY,     0,          MDB_BITRATE,        "Битрейт");
     MAKE_MENU   (recieved_cnt,  send_cnt,       bitrate,        connection,     NULL_ENTRY,     0,          MDB_RECIEVED_CNT,   "Принято");

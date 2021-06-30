@@ -83,7 +83,7 @@
 #define STEP_OUT2_2 LL_GPIO_PIN_12
 #define STEP_PORT GPIOB
 
-#define SAVED_PARAMS_SIZE 21
+#define SAVED_PARAMS_SIZE 10
 
 #if(SAVED_PARAMS_SIZE > SAVE_AREA_SIZE)
     #error(SAVED_PARAMS_SIZE > SAVE_AREA_SIZE)
@@ -171,7 +171,7 @@ typedef struct{
 typedef union{
     struct{
         uint16_t lvl_calib_table[6];
-        uint16_t tmpr_calib_table[11];
+        //uint16_t tmpr_calib_table[11];
         uint16_t mdb_address;
         uint16_t mdb_bitrate;
         uint16_t lcd_backlight_lvl;
