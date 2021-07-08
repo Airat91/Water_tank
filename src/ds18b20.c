@@ -284,7 +284,6 @@ void ds18b20_task (void const * argument){
     uint8_t lost_con_cnt = 0;
     uint32_t recieved = 0;
     uint32_t lost = 0;
-
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
         ds18b20_start_conv();
