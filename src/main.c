@@ -73,7 +73,7 @@
 
 #define FEEDER 0
 #define RELEASE 1
-# define PARILKA_DCTS 0
+# define PARILKA_DCTS 1
 
 typedef enum{
     READ_FLOAT_SIGNED = 0,
