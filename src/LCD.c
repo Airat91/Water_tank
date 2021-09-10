@@ -57,9 +57,9 @@ int LCD_init (void){
     HAL_Delay(2);
     LCD_send(LCD_RW_WRITE, LCD_RS_COMM, 0x36);
 
-    LCD_clr();
+    /*LCD_clr();
     LCD_backlight_on();
-    /*LCD_set_xy(0,63-7*1);
+    LCD_set_xy(0,63-7*1);
     LCD_print("ABCDEFGHIJKLMNOPQRSTUVWXY", &Font_5x7, LCD_COLOR_BLACK);
     LCD_set_xy(0,63-7*2);
     LCD_print("abcdefghijklmnopqrstuvwxy", &Font_5x7, LCD_COLOR_BLACK);
@@ -106,10 +106,10 @@ int LCD_spi_init (void){
     lcd_spi.Init.Mode = SPI_MODE_MASTER;
     lcd_spi.Init.Direction = SPI_DIRECTION_1LINE;
     lcd_spi.Init.DataSize = SPI_DATASIZE_8BIT;
-    lcd_spi.Init.CLKPolarity = SPI_POLARITY_LOW;
-    lcd_spi.Init.CLKPhase = SPI_PHASE_2EDGE;
+    lcd_spi.Init.CLKPolarity = SPI_POLARITY_HIGH;
+    lcd_spi.Init.CLKPhase = SPI_PHASE_1EDGE;
     lcd_spi.Init.NSS = SPI_NSS_SOFT;
-    lcd_spi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+    lcd_spi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
     lcd_spi.Init.FirstBit = SPI_FIRSTBIT_MSB;
     lcd_spi.Init.TIMode = SPI_TIMODE_DISABLE;
     lcd_spi.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;

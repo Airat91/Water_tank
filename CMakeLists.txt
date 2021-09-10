@@ -102,7 +102,7 @@ set(MAP_FILE ${PROJECT_SOURCE_DIR}/build/output.map)
 set_target_properties(${BUILD_TARGET} PROPERTIES LINK_FLAGS
     "-mcpu=${MCU_ARCH}\
     -mthumb\
-    -O0\
+    -Os\
     -specs=nosys.specs\
     -Wl,-gc-sections -T${PROJECT_SOURCE_DIR}/${MCU_LINKER_SCRIPT}\
     -Wl,-Map,${MAP_FILE}")
@@ -110,7 +110,7 @@ set_target_properties(${BUILD_TARGET} PROPERTIES LINK_FLAGS
 target_compile_options(${BUILD_TARGET} PUBLIC 
                              -mcpu=${MCU_ARCH}
                              -mthumb -mthumb-interwork
-                             -g -O0
+                             -g -Os
                              -ffunction-sections -fdata-sections -fno-common -fmessage-length=0)
 
 set(compile_options -mcpu=${MCU_ARCH}
