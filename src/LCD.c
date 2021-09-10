@@ -107,7 +107,7 @@ int LCD_spi_init (void){
     lcd_spi.Init.Direction = SPI_DIRECTION_1LINE;
     lcd_spi.Init.DataSize = SPI_DATASIZE_8BIT;
     lcd_spi.Init.CLKPolarity = SPI_POLARITY_HIGH;
-    lcd_spi.Init.CLKPhase = SPI_PHASE_1EDGE;
+    lcd_spi.Init.CLKPhase = SPI_PHASE_2EDGE;
     lcd_spi.Init.NSS = SPI_NSS_SOFT;
     lcd_spi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
     lcd_spi.Init.FirstBit = SPI_FIRSTBIT_MSB;
