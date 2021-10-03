@@ -74,6 +74,7 @@
 #define FEEDER 0
 #define RELEASE 1
 # define PARILKA_DCTS 1
+#define RTC_KEY 0xABCD
 
 typedef enum{
     READ_FLOAT_SIGNED = 0,
@@ -118,9 +119,9 @@ static void print_enter_ok(void);
 static void print_change(void);
 static void save_params(void);
 static void restore_params(void);
-static void save_to_bkp(u8 bkp_num, u8 var);
+static void save_to_bkp(u8 bkp_num, uint16_t var);
 static void save_float_to_bkp(u8 bkp_num, float var);
-static u8 read_bkp(u8 bkp_num);
+static uint16_t read_bkp(u8 bkp_num);
 static float read_float_bkp(u8 bkp_num, u8 sign);
 static void led_lin_init(void);
 
@@ -172,7 +173,7 @@ static uint16_t bitrate_array_pointer = 0;
 void dcts_init (void) {
 
     dcts.dcts_id = DCTS_ID_COMBINED;
-    strcpy (dcts.dcts_ver, "1.1.0");
+    strcpy (dcts.dcts_ver, "1.2.0");
     strcpy (dcts.dcts_name, "Banya");
     strcpy (dcts.dcts_name_cyr, "Баня");
     dcts.dcts_address = 0x0A;
@@ -332,6 +333,14 @@ static void RTC_Init(void){
         _Error_Handler(__FILE__, __LINE__);
     }
 
+    uint16_t read = read_bkp(0);
+    if(read == RTC_KEY){
+        dcts.dcts_rtc.state = RTC_STATE_READY;
+    }else{
+        save_to_bkp(0, RTC_KEY);
+        dcts.dcts_rtc.state = RTC_STATE_SET;
+    }
+
     if(dcts.dcts_rtc.state == RTC_STATE_SET){
         sTime.Hours = dcts.dcts_rtc.hour;
         sTime.Minutes = dcts.dcts_rtc.minute;
@@ -346,26 +355,6 @@ static void RTC_Init(void){
     }
     dcts.dcts_rtc.state = RTC_STATE_READY;
 }
-
-
-/*int RTC_set(rtc_t dcts_rtc){
-    int result = 0;
-    RTC_TimeTypeDef sTime = {0};
-    RTC_DateTypeDef sDate = {0};
-
-    sTime.Hours = dcts_rtc.hour;
-    sTime.Minutes = dcts_rtc.minute;
-    sTime.Seconds = dcts_rtc.second;
-
-    sDate.Date = dcts_rtc.day;
-    sDate.Month = dcts_rtc.month;
-    sDate.Year = (uint8_t)(dcts_rtc.year - 2000);
-
-    HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
-    HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
-
-    return result;
-}*/
 
 
 /**
@@ -535,9 +524,10 @@ void display_task(void const * argument){
     }
 }
 
-#define BUTTON_PRESS_TIME 1000
+#define BUTTON_PRESS_TIME 500
 #define BUTTON_PRESS_TIMEOUT 10000
 #define BUTTON_CLICK_TIME 10
+#define BUTTON_DISP_RESET 3000
 #define navigation_task_period 20
 void navigation_task (void const * argument){
     (void)argument;
@@ -681,8 +671,6 @@ void navigation_task (void const * argument){
                 }
             }
             if(button_click(BUTTON_OK, BUTTON_CLICK_TIME)){
-                /*while(pressed_time[BUTTON_OK].last_state == BUTTON_PRESSED){
-                }*/
                 navigation_style = MENU_NAVIGATION;
             }
 
@@ -692,6 +680,12 @@ void navigation_task (void const * argument){
             if(LCD.auto_off == 0){
                 LCD_backlight_toggle();
             }
+        }
+        if(button_clamp(BUTTON_BREAK, BUTTON_DISP_RESET)){
+            vTaskSuspend(displayTaskHandle);
+            LCD_deinit();
+            LCD_init();
+            vTaskResume(displayTaskHandle);
         }
         if(button_click(BUTTON_SET, BUTTON_CLICK_TIME)){
             save_params();
@@ -923,9 +917,7 @@ static void calib_print (uint8_t start_channel){
         print_back();
         print_change();
 
-        if(pressed_time[BUTTON_RIGHT].pressed > navigation_task_period){
-            while(pressed_time[BUTTON_RIGHT].last_state == BUTTON_PRESSED){
-            }
+        if(button_clamp(BUTTON_RIGHT, BUTTON_PRESS_TIME)){
             navigation_style = DIGIT_EDIT;
             edit_val.type = VAL_UINT16;
             edit_val.digit_max = 3;
@@ -1069,9 +1061,9 @@ static void mdb_print(void){
         case MDB_BITRATE:
             print_change();
 
-            if(pressed_time[BUTTON_RIGHT].pressed > navigation_task_period){
-                while(pressed_time[BUTTON_RIGHT].last_state == BUTTON_PRESSED){
-                }
+            if(button_clamp(BUTTON_RIGHT, BUTTON_PRESS_TIME)){
+                /*while(pressed_time[BUTTON_RIGHT].last_state == BUTTON_PRESSED){
+                }*/
                 navigation_style = DIGIT_EDIT;
                 switch (selectedMenuItem->Page) {
                 case MDB_ADDR:
@@ -1169,9 +1161,9 @@ static void display_print(void){
         print_back();
         print_change();
 
-        if(pressed_time[BUTTON_RIGHT].pressed > navigation_task_period){
-            while(pressed_time[BUTTON_RIGHT].last_state == BUTTON_PRESSED){
-            }
+        if(button_clamp(BUTTON_RIGHT, BUTTON_PRESS_TIME)){
+            /*while(pressed_time[BUTTON_RIGHT].last_state == BUTTON_PRESSED){
+            }*/
             navigation_style = DIGIT_EDIT;
             switch (selectedMenuItem->Page) {
             case LIGHT_LVL:
@@ -1319,9 +1311,9 @@ static void rtc_print(void){
         print_back();
         print_change();
 
-        if(pressed_time[BUTTON_RIGHT].pressed > navigation_task_period){
-            while(pressed_time[BUTTON_RIGHT].last_state == BUTTON_PRESSED){
-            }
+        if(button_clamp(BUTTON_RIGHT, BUTTON_PRESS_TIME)){
+            /*while(pressed_time[BUTTON_RIGHT].last_state == BUTTON_PRESSED){
+            }*/
             navigation_style = DIGIT_EDIT;
             dcts.dcts_rtc.state = RTC_STATE_EDIT;
             switch (selectedMenuItem->Page) {
@@ -1792,42 +1784,42 @@ static void restore_params(void){
     }
 }
 
-static void save_to_bkp(u8 bkp_num, u8 var){
+static void save_to_bkp(u8 bkp_num, uint16_t var){
     uint32_t data = var;
-    if(bkp_num%2 == 1){
+    /*if(bkp_num%2 == 1){
         data = data << 8;
-    }
+    }*/
     HAL_PWR_EnableBkUpAccess();
-    switch (bkp_num / 2){
+    switch (bkp_num){
     case 0:
-        BKP->DR1 |= data;
+        BKP->DR1 = data;
         break;
     case 1:
-        BKP->DR2 |= data;
+        BKP->DR2 = data;
         break;
     case 2:
-        BKP->DR3 |= data;
+        BKP->DR3 = data;
         break;
     case 3:
-        BKP->DR4 |= data;
+        BKP->DR4 = data;
         break;
     case 4:
-        BKP->DR5 |= data;
+        BKP->DR5 = data;
         break;
     case 5:
-        BKP->DR6 |= data;
+        BKP->DR6 = data;
         break;
     case 6:
-        BKP->DR7 |= data;
+        BKP->DR7 = data;
         break;
     case 7:
-        BKP->DR8 |= data;
+        BKP->DR8 = data;
         break;
     case 8:
-        BKP->DR9 |= data;
+        BKP->DR9 = data;
         break;
     case 9:
-        BKP->DR10 |= data;
+        BKP->DR10 = data;
         break;
     }
     HAL_PWR_DisableBkUpAccess();
@@ -1839,9 +1831,9 @@ static void save_float_to_bkp(u8 bkp_num, float var){
     u8 data = (u8)atoi(buf);
     save_to_bkp(bkp_num, data);
 }
-static u8 read_bkp(u8 bkp_num){
+static uint16_t read_bkp(u8 bkp_num){
     uint32_t data = 0;
-    switch (bkp_num/2){
+    switch (bkp_num){
     case 0:
         data = BKP->DR1;
         break;
@@ -1876,7 +1868,7 @@ static u8 read_bkp(u8 bkp_num){
     if(bkp_num%2 == 1){
         data = data >> 8;
     }
-    return (u8)(data & 0xFF);
+    return (uint16_t)(data & 0xFFFF);
 }
 static float read_float_bkp(u8 bkp_num, u8 sign){
     u8 data = read_bkp(bkp_num);

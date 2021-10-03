@@ -153,6 +153,7 @@ void adc_task(void const * argument){
     //uint16_t wtr_tmp[ADC_BUF_SIZE];
     uint16_t vref[ADC_BUF_SIZE];
     uint8_t tick = 0;
+    float temp = 0.0f;
     adc_init();
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
@@ -179,7 +180,12 @@ void adc_task(void const * argument){
         dcts_meas[VREFINT_ADC].value = (float)vref_sum/ADC_BUF_SIZE;
         dcts_meas[VREF_V].value = ADC_VREFINT/dcts_meas[VREFINT_ADC].value*ADC_MAX;
 
-        dcts.dcts_pwr = (float)pwr_sum/ADC_BUF_SIZE*ADC_VREFINT/dcts_meas[VREFINT_ADC].value*PWR_K;
+        temp = (float)pwr_sum/ADC_BUF_SIZE*ADC_VREFINT/dcts_meas[VREFINT_ADC].value*PWR_K;
+        if (temp > 26.0f){
+            dcts.dcts_pwr = 220.0f;
+        }else{
+            dcts.dcts_pwr = temp;
+        }
 
         dcts_meas[WTR_LVL_ADC].value = (float)wtr_lev_sum/ADC_BUF_SIZE;
         dcts_meas[WTR_LVL_V].value = dcts_meas[WTR_LVL_ADC].value*ADC_VREFINT/dcts_meas[VREFINT_ADC].value;
