@@ -352,8 +352,8 @@ static void RTC_Init(void){
 
         HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
         HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+        dcts.dcts_rtc.state = RTC_STATE_READY;
     }
-    dcts.dcts_rtc.state = RTC_STATE_READY;
 }
 
 
@@ -552,6 +552,16 @@ void navigation_task (void const * argument){
             }
             break;
         case DIGIT_EDIT:
+            switch (selectedMenuItem->Page){
+            case TIME_HOUR:
+            case TIME_MIN:
+            case TIME_SEC:
+            case DATE_DAY:
+            case DATE_MONTH:
+            case DATE_YEAR:
+                dcts.dcts_rtc.state = RTC_STATE_EDIT;
+                break;
+            }
             if(button_click(BUTTON_UP, BUTTON_CLICK_TIME)){
                 switch(edit_val.type){
                 case VAL_INT8:
@@ -671,6 +681,16 @@ void navigation_task (void const * argument){
                 }
             }
             if(button_click(BUTTON_OK, BUTTON_CLICK_TIME)){
+                switch (selectedMenuItem->Page){
+                case TIME_HOUR:
+                case TIME_MIN:
+                case TIME_SEC:
+                case DATE_DAY:
+                case DATE_MONTH:
+                case DATE_YEAR:
+                    dcts.dcts_rtc.state = RTC_STATE_SET;
+                    break;
+                }
                 navigation_style = MENU_NAVIGATION;
             }
 
@@ -714,37 +734,40 @@ static void main_page_print(void){
     uint8_t high_lev = 0;
 
     // print water tank
-    LCD_fill_area(0,0,50,63,LCD_COLOR_BLACK);
-    LCD_fill_area(1,1,49,62,LCD_COLOR_WHITE);
+    LCD_fill_area(0,0,50,55,LCD_COLOR_BLACK);
+    LCD_fill_area(1,1,49,54,LCD_COLOR_WHITE);
 
     // print values
     if(dcts_meas[WTR_TMPR].valid){
         last_wtr_tmp = dcts_meas[WTR_TMPR].value;
     }
+    sprintf(string, "%02d:%02d:%02d", dcts.dcts_rtc.hour, dcts.dcts_rtc.minute, dcts.dcts_rtc.second);
+    LCD_set_xy(align_text_center(string, Font_5x7)-38,56);
+    LCD_print(string,&Font_5x7,LCD_COLOR_BLACK);
     sprintf(string, "%3.1f%s", (double)last_wtr_tmp, dcts_meas[WTR_TMPR].unit_cyr);
-    LCD_set_xy(align_text_center(string, Font_7x10)-38,45);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
-    sprintf(string, "%3.1f%s", (double)dcts_meas[WTR_LVL].value, dcts_meas[WTR_LVL].unit_cyr);
-    LCD_set_xy(align_text_center(string, Font_7x10)-38,5);
+    LCD_set_xy(align_text_center(string, Font_7x10)-38,38);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
     sprintf(string, "Горячая");
-    LCD_set_xy(align_text_center(string, Font_7x10)-38,30);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_set_xy(align_text_center(string, Font_5x7)-38,26);
+    LCD_print(string,&Font_5x7,LCD_COLOR_BLACK);
     sprintf(string, "вода");
-    LCD_set_xy(align_text_center(string, Font_7x10)-38,20);
+    LCD_set_xy(align_text_center(string, Font_5x7)-38,18);
+    LCD_print(string,&Font_5x7,LCD_COLOR_BLACK);
+    sprintf(string, "%3.1f%s", (double)dcts_meas[WTR_LVL].value, dcts_meas[WTR_LVL].unit_cyr);
+    LCD_set_xy(align_text_center(string, Font_7x10)-38,4);
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
 
 
     // fill water level
-    high_lev = (uint8_t)(dcts_meas[WTR_LVL].value/vmax*62);
-    if(high_lev > 61){
-        high_lev = 61;
+    high_lev = (uint8_t)(dcts_meas[WTR_LVL].value/vmax*54);
+    if(high_lev > 53){
+        high_lev = 53;
     }
     LCD_invert_area(1,1,49,high_lev+1);
 
     sprintf(string, "Предбанник");
-    LCD_set_xy(align_text_center(string, Font_7x10)+27,52);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_set_xy(align_text_center(string, Font_5x7)+27,54);
+    LCD_print(string,&Font_5x7,LCD_COLOR_BLACK);
     LCD_invert_area(52,53,127,63);
     if(dcts_meas[PREDBANNIK_HUM].valid){
         sprintf(string, "%.1f%s/%.0f%s", (double)dcts_meas[PREDBANNIK_TMPR].value, dcts_meas[PREDBANNIK_TMPR].unit_cyr, (double)dcts_meas[PREDBANNIK_HUM].value, dcts_meas[PREDBANNIK_HUM].unit_cyr);
@@ -755,8 +778,8 @@ static void main_page_print(void){
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
 
     sprintf(string, "Моечная");
-    LCD_set_xy(align_text_center(string, Font_7x10)+27,31);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_set_xy(align_text_center(string, Font_5x7)+27,33);
+    LCD_print(string,&Font_5x7,LCD_COLOR_BLACK);
     LCD_invert_area(52,32,127,42);
     if(dcts_meas[MOYKA_HUM].valid){
         sprintf(string, "%.1f%s/%.0f%s", (double)dcts_meas[MOYKA_TMPR].value, dcts_meas[MOYKA_TMPR].unit_cyr, (double)dcts_meas[MOYKA_HUM].value, dcts_meas[MOYKA_HUM].unit_cyr);
@@ -767,8 +790,8 @@ static void main_page_print(void){
     LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
 
     sprintf(string, "Парная");
-    LCD_set_xy(align_text_center(string, Font_7x10)+27,10);
-    LCD_print(string,&Font_7x10,LCD_COLOR_BLACK);
+    LCD_set_xy(align_text_center(string, Font_5x7)+27,12);
+    LCD_print(string,&Font_5x7,LCD_COLOR_BLACK);
     LCD_invert_area(52,12,127,21);
     if(dcts_meas[PARILKA_TMPR].valid){
         sprintf(string, "%.1f%s", (double)dcts_meas[PARILKA_TMPR].value, dcts_meas[PARILKA_TMPR].unit_cyr);
@@ -1208,7 +1231,7 @@ static void display_print(void){
 }
 static void rtc_print(void){
     char string[100];
-    static uint8_t rtc_task_suspended = 0;
+    //static uint8_t rtc_task_suspended = 0;
     menuItem* temp = selectedMenuItem->Parent;
     sprintf(string, temp->Text);
     LCD_set_xy(align_text_center(string,Font_7x10),52);
@@ -1299,23 +1322,16 @@ static void rtc_print(void){
 
     switch (navigation_style) {
     case MENU_NAVIGATION:
-        /*if(rtc_task_suspended == 1){
-            rtc_task_suspended = 0;
-            RTC_set(dcts.dcts_rtc);
-            vTaskResume(rtcTaskHandle);
-        }*/
-        if(dcts.dcts_rtc.state == RTC_STATE_EDIT){
+        /*if(dcts.dcts_rtc.state == RTC_STATE_EDIT){
             dcts.dcts_rtc.state = RTC_STATE_SET;
-        }
+        }*/
 
         print_back();
         print_change();
 
         if(button_clamp(BUTTON_RIGHT, BUTTON_PRESS_TIME)){
-            /*while(pressed_time[BUTTON_RIGHT].last_state == BUTTON_PRESSED){
-            }*/
             navigation_style = DIGIT_EDIT;
-            dcts.dcts_rtc.state = RTC_STATE_EDIT;
+            //dcts.dcts_rtc.state = RTC_STATE_EDIT;
             switch (selectedMenuItem->Page) {
             case TIME_HOUR:
                 edit_val.type = VAL_UINT8;
@@ -1371,13 +1387,6 @@ static void rtc_print(void){
         }
         break;
     case DIGIT_EDIT:
-        /*if(rtc_task_suspended == 0){
-            rtc_task_suspended = 1;
-            eTaskState state = eTaskGetState(rtcTaskHandle);
-            vTaskSuspend(rtcTaskHandle);
-            state = eTaskGetState(rtcTaskHandle);
-            ;
-        }*/
         print_enter_ok();
         LCD_invert_area(127-(edit_val.digit+1)*Font_7x10.FontWidth,27,126-edit_val.digit*Font_7x10.FontWidth,38);
 
@@ -1786,9 +1795,6 @@ static void restore_params(void){
 
 static void save_to_bkp(u8 bkp_num, uint16_t var){
     uint32_t data = var;
-    /*if(bkp_num%2 == 1){
-        data = data << 8;
-    }*/
     HAL_PWR_EnableBkUpAccess();
     switch (bkp_num){
     case 0:
