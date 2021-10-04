@@ -707,6 +707,9 @@ void navigation_task (void const * argument){
             LCD_init();
             vTaskResume(displayTaskHandle);
         }
+        if(button_clamp(BUTTON_LEFT, BUTTON_DISP_RESET)){
+            NVIC_SystemReset();
+        }
         if(button_click(BUTTON_SET, BUTTON_CLICK_TIME)){
             save_params();
         }
