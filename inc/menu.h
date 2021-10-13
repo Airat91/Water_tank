@@ -17,6 +17,8 @@
 #define PARENT     ((menuItem*)pgm_read_word(&selectedMenuItem->Parent))
 #define CHILD      ((menuItem*)pgm_read_word(&selectedMenuItem->Child))
 #define SELECT		(pgm_read_byte(&selectedMenuItem->Select))
+#define NULL_ENTRY  Null_Menu
+#define EDITED_VAL  edit_value
 
 /*========== TYPEDEFS ==========*/
 
@@ -79,6 +81,7 @@ typedef enum {
     DATE_DAY,
     DATE_MONTH,
     DATE_YEAR,
+    EDIT,
 } menu_page_t;
 
 typedef struct {

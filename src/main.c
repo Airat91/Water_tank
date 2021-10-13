@@ -66,6 +66,7 @@
 #include "uart.h"
 #include "modbus.h"
 #include "ds18b20.h"
+//#include "time.h"
 
 /**
   * @defgroup MAIN
@@ -102,6 +103,7 @@ osThreadId uartTaskHandle;
 void SystemClock_Config(void);
 static void MX_IWDG_Init(void);
 static void RTC_Init(void);
+static int RTC_write_cnt(time_t cnt_value);
 static void tim2_init(void);
 static void main_page_print(void);
 static void main_menu_print(void);
@@ -324,6 +326,8 @@ void SystemClock_Config(void)
 static void RTC_Init(void){
     RTC_TimeTypeDef sTime = {0};
     RTC_DateTypeDef sDate = {0};
+    //time_t unix_time = 0;
+    //struct tm system_time = {0};
     __HAL_RCC_BKP_CLK_ENABLE();
     __HAL_RCC_PWR_CLK_ENABLE();
     __HAL_RCC_RTC_ENABLE();
@@ -342,6 +346,19 @@ static void RTC_Init(void){
     }
 
     if(dcts.dcts_rtc.state == RTC_STATE_SET){
+/*
+        system_time.tm_hour = dcts.dcts_rtc.hour;
+        system_time.tm_min = dcts.dcts_rtc.minute;
+        system_time.tm_sec = dcts.dcts_rtc.second;
+
+        system_time.tm_mday = dcts.dcts_rtc.day;
+        system_time.tm_mon = dcts.dcts_rtc.month;
+        system_time.tm_year = dcts.dcts_rtc.year - 1900;
+
+        unix_time = mktime(&system_time);
+
+        RTC_write_cnt(unix_time);
+*/
         sTime.Hours = dcts.dcts_rtc.hour;
         sTime.Minutes = dcts.dcts_rtc.minute;
         sTime.Seconds = dcts.dcts_rtc.second;
@@ -355,8 +372,40 @@ static void RTC_Init(void){
         dcts.dcts_rtc.state = RTC_STATE_READY;
     }
 }
-
-
+/**
+ * @brief RTC_write_cnt
+ * @param cnt_value - time in unix format
+ * @return  0 - OK,\n
+ *          -1 - timeout error,\n
+ *          -2 - timeout error
+ */
+static int RTC_write_cnt(time_t cnt_value){
+    int result = 0;
+    u32 start = HAL_GetTick();
+    u32 timeout = 0;
+    PWR->CR |= PWR_CR_DBP;                                          //разрешить доступ к Backup области
+    while ((!(RTC->CRL & RTC_CRL_RTOFF))&&(timeout <= start + 500)){//проверить закончены ли изменения регистров RTC
+        osDelay(1);
+        timeout++;
+    }
+    if(timeout > start + 500){
+        result = -1;
+    }
+    RTC->CRL |= RTC_CRL_CNF;                                        //Разрешить Запись в регистры RTC
+    RTC->CNTH = (u32)cnt_value>>16;                                 //записать новое значение счетного регистра
+    RTC->CNTL = (u32)cnt_value;
+    RTC->CRL &= ~RTC_CRL_CNF;                                       //Запретить запись в регистры RTC
+    start = HAL_GetTick();
+    while ((!(RTC->CRL & RTC_CRL_RTOFF))&&(timeout <= start + 500)){//Дождаться окончания записи
+        osDelay(1);
+        timeout++;
+    }
+    if(timeout > start + 500){
+        result = -2;
+    }
+    PWR->CR &= ~PWR_CR_DBP;                                         //запретить доступ к Backup области
+    return result;
+}
 /**
  * @brief RTC task
  * @param argument - None
@@ -368,6 +417,8 @@ void rtc_task(void const * argument){
     (void)argument;
     RTC_TimeTypeDef time = {0};
     RTC_DateTypeDef date = {0};
+    //time_t unix_time = 0;
+    //struct tm system_time = {0};
     RTC_Init();
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
@@ -375,8 +426,19 @@ void rtc_task(void const * argument){
         case RTC_STATE_READY:   //update dcts_rtc from rtc
             HAL_RTC_GetDate(&hrtc,&date,RTC_FORMAT_BIN);
             HAL_RTC_GetTime(&hrtc,&time,RTC_FORMAT_BIN);
+            /*unix_time = (time_t)(RTC->CNTL);
+            unix_time |= (time_t)(RTC->CNTH<<16);
+            system_time = *localtime(&unix_time);*/
 
             taskENTER_CRITICAL();
+            /*dcts.dcts_rtc.hour      = (u8)system_time.tm_hour;
+            dcts.dcts_rtc.minute    = (u8)system_time.tm_min;
+            dcts.dcts_rtc.second    = (u8)system_time.tm_sec;
+
+            dcts.dcts_rtc.day       = (u8)system_time.tm_mday;
+            dcts.dcts_rtc.month     = (u8)system_time.tm_mon;
+            dcts.dcts_rtc.year      = (u8)system_time.tm_year + 1900;
+            dcts.dcts_rtc.weekday   = (u8)system_time.tm_wday;*/
             dcts.dcts_rtc.hour = time.Hours;
             dcts.dcts_rtc.minute = time.Minutes;
             dcts.dcts_rtc.second = time.Seconds;
@@ -388,6 +450,17 @@ void rtc_task(void const * argument){
             taskEXIT_CRITICAL();
             break;
         case RTC_STATE_SET:     //set new values from dcts_rtc
+            /*system_time.tm_hour = dcts.dcts_rtc.hour;
+            system_time.tm_min  = dcts.dcts_rtc.minute;
+            system_time.tm_sec  = dcts.dcts_rtc.second;
+
+            system_time.tm_mday = dcts.dcts_rtc.day;
+            system_time.tm_mon  = dcts.dcts_rtc.month;
+            system_time.tm_year = dcts.dcts_rtc.year - 1900;
+
+            unix_time = mktime(&system_time);
+
+            RTC_write_cnt(unix_time);*/
             time.Hours = dcts.dcts_rtc.hour;
             time.Minutes = dcts.dcts_rtc.minute;
             time.Seconds = dcts.dcts_rtc.second;
@@ -906,12 +979,7 @@ static void calib_print (uint8_t start_channel){
         LCD_set_xy(align_text_right(string,Font_7x10),52);
         LCD_print(string,&Font_7x10,LCD_COLOR_WHITE);
         calib_table = config.params.lvl_calib_table;
-    }/*else if(temp->Page == TMPR_CALIB){
-        sprintf(string, "%.0f",(double)dcts_meas[WTR_TMPR_ADC].value);
-        LCD_set_xy(align_text_right(string,Font_7x10),52);
-        LCD_print(string,&Font_7x10,LCD_COLOR_WHITE);
-        calib_table = config.params.tmpr_calib_table;
-    }*/
+    }
 
     temp = selectedMenuItem->Previous;
     sprintf(string, temp->Text);
@@ -943,15 +1011,13 @@ static void calib_print (uint8_t start_channel){
         print_back();
         print_change();
 
-        if(button_clamp(BUTTON_RIGHT, BUTTON_PRESS_TIME)){
-            navigation_style = DIGIT_EDIT;
-            edit_val.type = VAL_UINT16;
-            edit_val.digit_max = 3;
-            edit_val.digit = 0;
-            edit_val.val_min.uint16 = 0;
-            edit_val.val_max.uint16 = 4095;
-            edit_val.p_val.p_uint16 = &calib_table[(uint8_t)selectedMenuItem->Page-start_channel];
-        }
+        edit_val.type = VAL_UINT16;
+        edit_val.digit_max = 3;
+        edit_val.digit = 0;
+        edit_val.val_min.uint16 = 0;
+        edit_val.val_max.uint16 = 4095;
+        edit_val.p_val.p_uint16 = &calib_table[(uint8_t)selectedMenuItem->Page-start_channel];
+
         break;
     case DIGIT_EDIT:
         print_enter_ok();
@@ -1087,28 +1153,23 @@ static void mdb_print(void){
         case MDB_BITRATE:
             print_change();
 
-            if(button_clamp(BUTTON_RIGHT, BUTTON_PRESS_TIME)){
-                /*while(pressed_time[BUTTON_RIGHT].last_state == BUTTON_PRESSED){
-                }*/
-                navigation_style = DIGIT_EDIT;
-                switch (selectedMenuItem->Page) {
-                case MDB_ADDR:
-                    edit_val.type = VAL_UINT16;
-                    edit_val.digit_max = 2;
-                    edit_val.digit = 0;
-                    edit_val.val_min.uint16 = 0;
-                    edit_val.val_max.uint16 = 255;
-                    edit_val.p_val.p_uint16 = &config.params.mdb_address;
-                    break;
-                case MDB_BITRATE:
-                    edit_val.type = VAL_UINT16;
-                    edit_val.digit_max = 0;
-                    edit_val.digit = 0;
-                    edit_val.val_min.uint16 = 0;
-                    edit_val.val_max.uint16 = 13;
-                    edit_val.p_val.p_uint16 = &bitrate_array_pointer;
-                    break;
-                }
+            switch (selectedMenuItem->Page) {
+            case MDB_ADDR:
+                edit_val.type = VAL_UINT16;
+                edit_val.digit_max = 2;
+                edit_val.digit = 0;
+                edit_val.val_min.uint16 = 0;
+                edit_val.val_max.uint16 = 255;
+                edit_val.p_val.p_uint16 = &config.params.mdb_address;
+                break;
+            case MDB_BITRATE:
+                edit_val.type = VAL_UINT16;
+                edit_val.digit_max = 0;
+                edit_val.digit = 0;
+                edit_val.val_min.uint16 = 0;
+                edit_val.val_max.uint16 = 13;
+                edit_val.p_val.p_uint16 = &bitrate_array_pointer;
+                break;
             }
         }
         break;
@@ -1187,30 +1248,25 @@ static void display_print(void){
         print_back();
         print_change();
 
-        if(button_clamp(BUTTON_RIGHT, BUTTON_PRESS_TIME)){
-            /*while(pressed_time[BUTTON_RIGHT].last_state == BUTTON_PRESSED){
-            }*/
-            navigation_style = DIGIT_EDIT;
-            switch (selectedMenuItem->Page) {
-            case LIGHT_LVL:
-                edit_val.type = VAL_UINT16;
-                edit_val.digit_max = 1;
-                edit_val.digit = 0;
-                edit_val.val_min.uint16 = 0;
-                edit_val.val_max.uint16 = 10;
-                edit_val.p_val.p_uint16 = &LCD.backlight_lvl;
-                break;
-            case AUTO_OFF:
-                edit_val.type = VAL_UINT16;
-                edit_val.digit_max = 1;
-                edit_val.digit = 0;
-                edit_val.val_min.uint16 = 0;
-                edit_val.val_max.uint16 = 60;
-                edit_val.p_val.p_uint16 = &LCD.auto_off;
-                break;
-            default:
-                break;
-            }
+        switch (selectedMenuItem->Page) {
+        case LIGHT_LVL:
+            edit_val.type = VAL_UINT16;
+            edit_val.digit_max = 1;
+            edit_val.digit = 0;
+            edit_val.val_min.uint16 = 0;
+            edit_val.val_max.uint16 = 10;
+            edit_val.p_val.p_uint16 = &LCD.backlight_lvl;
+            break;
+        case AUTO_OFF:
+            edit_val.type = VAL_UINT16;
+            edit_val.digit_max = 1;
+            edit_val.digit = 0;
+            edit_val.val_min.uint16 = 0;
+            edit_val.val_max.uint16 = 60;
+            edit_val.p_val.p_uint16 = &LCD.auto_off;
+            break;
+        default:
+            break;
         }
         break;
     case DIGIT_EDIT:
@@ -1234,7 +1290,6 @@ static void display_print(void){
 }
 static void rtc_print(void){
     char string[100];
-    //static uint8_t rtc_task_suspended = 0;
     menuItem* temp = selectedMenuItem->Parent;
     sprintf(string, temp->Text);
     LCD_set_xy(align_text_center(string,Font_7x10),52);
@@ -1325,68 +1380,61 @@ static void rtc_print(void){
 
     switch (navigation_style) {
     case MENU_NAVIGATION:
-        /*if(dcts.dcts_rtc.state == RTC_STATE_EDIT){
-            dcts.dcts_rtc.state = RTC_STATE_SET;
-        }*/
 
         print_back();
         print_change();
 
-        if(button_clamp(BUTTON_RIGHT, BUTTON_PRESS_TIME)){
-            navigation_style = DIGIT_EDIT;
-            //dcts.dcts_rtc.state = RTC_STATE_EDIT;
-            switch (selectedMenuItem->Page) {
-            case TIME_HOUR:
-                edit_val.type = VAL_UINT8;
-                edit_val.digit_max = 1;
-                edit_val.digit = 0;
-                edit_val.val_min.uint8 = 0;
-                edit_val.val_max.uint8 = 23;
-                edit_val.p_val.p_uint8 = &dcts.dcts_rtc.hour;
-                break;
-            case TIME_MIN:
-                edit_val.type = VAL_UINT8;
-                edit_val.digit_max = 1;
-                edit_val.digit = 0;
-                edit_val.val_min.uint8 = 0;
-                edit_val.val_max.uint8 = 59;
-                edit_val.p_val.p_uint8 = &dcts.dcts_rtc.minute;
-                break;
-            case TIME_SEC:
-                edit_val.type = VAL_UINT8;
-                edit_val.digit_max = 1;
-                edit_val.digit = 0;
-                edit_val.val_min.uint8 = 0;
-                edit_val.val_max.uint8 = 59;
-                edit_val.p_val.p_uint8 = &dcts.dcts_rtc.second;
-                break;
-            case DATE_DAY:
-                edit_val.type = VAL_UINT8;
-                edit_val.digit_max = 1;
-                edit_val.digit = 0;
-                edit_val.val_min.uint8 = 1;
-                edit_val.val_max.uint8 = 31;
-                edit_val.p_val.p_uint8 = &dcts.dcts_rtc.day;
-                break;
-            case DATE_MONTH:
-                edit_val.type = VAL_UINT8;
-                edit_val.digit_max = 1;
-                edit_val.digit = 0;
-                edit_val.val_min.uint8 = 1;
-                edit_val.val_max.uint8 = 12;
-                edit_val.p_val.p_uint8 = &dcts.dcts_rtc.month;
-                break;
-            case DATE_YEAR:
-                edit_val.type = VAL_UINT16;
-                edit_val.digit_max = 3;
-                edit_val.digit = 0;
-                edit_val.val_min.uint16 = 2000;
-                edit_val.val_max.uint16 = 3000;
-                edit_val.p_val.p_uint16 = &dcts.dcts_rtc.year;
-                break;
-            default:
-                break;
-            }
+        switch (selectedMenuItem->Page) {
+        case TIME_HOUR:
+            edit_val.type = VAL_UINT8;
+            edit_val.digit_max = 1;
+            edit_val.digit = 0;
+            edit_val.val_min.uint8 = 0;
+            edit_val.val_max.uint8 = 23;
+            edit_val.p_val.p_uint8 = &dcts.dcts_rtc.hour;
+            break;
+        case TIME_MIN:
+            edit_val.type = VAL_UINT8;
+            edit_val.digit_max = 1;
+            edit_val.digit = 0;
+            edit_val.val_min.uint8 = 0;
+            edit_val.val_max.uint8 = 59;
+            edit_val.p_val.p_uint8 = &dcts.dcts_rtc.minute;
+            break;
+        case TIME_SEC:
+            edit_val.type = VAL_UINT8;
+            edit_val.digit_max = 1;
+            edit_val.digit = 0;
+            edit_val.val_min.uint8 = 0;
+            edit_val.val_max.uint8 = 59;
+            edit_val.p_val.p_uint8 = &dcts.dcts_rtc.second;
+            break;
+        case DATE_DAY:
+            edit_val.type = VAL_UINT8;
+            edit_val.digit_max = 1;
+            edit_val.digit = 0;
+            edit_val.val_min.uint8 = 1;
+            edit_val.val_max.uint8 = 31;
+            edit_val.p_val.p_uint8 = &dcts.dcts_rtc.day;
+            break;
+        case DATE_MONTH:
+            edit_val.type = VAL_UINT8;
+            edit_val.digit_max = 1;
+            edit_val.digit = 0;
+            edit_val.val_min.uint8 = 1;
+            edit_val.val_max.uint8 = 12;
+            edit_val.p_val.p_uint8 = &dcts.dcts_rtc.month;
+            break;
+        case DATE_YEAR:
+            edit_val.type = VAL_UINT16;
+            edit_val.digit_max = 3;
+            edit_val.digit = 0;
+            edit_val.val_min.uint16 = 2000;
+            edit_val.val_max.uint16 = 3000;
+            edit_val.p_val.p_uint16 = &dcts.dcts_rtc.year;
+            break;
+        default:
+            break;
         }
         break;
     case DIGIT_EDIT:

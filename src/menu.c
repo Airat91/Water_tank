@@ -11,7 +11,6 @@
   */
 
 
-#define NULL_ENTRY Null_Menu
 static menuItem Null_Menu = {
     .Next = (void*)0,
     .Previous = (void*)0,
@@ -19,6 +18,15 @@ static menuItem Null_Menu = {
     .Child = (void*)0,
     .Child_num = 0,
     .Page = 0,
+    .Text = {0},
+};
+static menuItem edit_value = {
+    .Next = (void*)0,
+    .Previous = (void*)0,
+    .Parent = (void*)0,
+    .Child = (void*)0,
+    .Child_num = 0,
+    .Page = EDIT,
     .Text = {0},
 };
 
@@ -45,12 +53,12 @@ MAKE_MENU       (main_page,     NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     
     MAKE_MENU   (meas_ch_11,    meas_ch_12,     meas_ch_10,     meas_channels,  NULL_ENTRY,     0,          MEAS_CH_11,         0x00);
     MAKE_MENU   (meas_ch_12,    meas_ch_0,      meas_ch_11,     meas_channels,  NULL_ENTRY,     0,          MEAS_CH_12,         0x00);
   MAKE_MENU     (lvl_calib,     connection,     meas_channels,  main_page,      lvl_0,          6,          LVL_CALIB,          "Калиб. уровня");
-    MAKE_MENU   (lvl_0,         lvl_20,         lvl_100,        lvl_calib,      NULL_ENTRY,     0,          LVL_0,              "АЦП при 0л");
-    MAKE_MENU   (lvl_20,        lvl_40,         lvl_0,          lvl_calib,      NULL_ENTRY,     0,          LVL_20,             "АЦП при 20л");
-    MAKE_MENU   (lvl_40,        lvl_60,         lvl_20,         lvl_calib,      NULL_ENTRY,     0,          LVL_40,             "АЦП при 40л");
-    MAKE_MENU   (lvl_60,        lvl_80,         lvl_40,         lvl_calib,      NULL_ENTRY,     0,          LVL_60,             "АЦП при 60л");
-    MAKE_MENU   (lvl_80,        lvl_100,        lvl_60,         lvl_calib,      NULL_ENTRY,     0,          LVL_80,             "АЦП при 80л");
-    MAKE_MENU   (lvl_100,       lvl_0,          lvl_80,         lvl_calib,      NULL_ENTRY,     0,          LVL_100,            "АЦП при 100л");
+    MAKE_MENU   (lvl_0,         lvl_20,         lvl_100,        lvl_calib,      EDITED_VAL,     0,          LVL_0,              "АЦП при 0л");
+    MAKE_MENU   (lvl_20,        lvl_40,         lvl_0,          lvl_calib,      EDITED_VAL,     0,          LVL_20,             "АЦП при 20л");
+    MAKE_MENU   (lvl_40,        lvl_60,         lvl_20,         lvl_calib,      EDITED_VAL,     0,          LVL_40,             "АЦП при 40л");
+    MAKE_MENU   (lvl_60,        lvl_80,         lvl_40,         lvl_calib,      EDITED_VAL,     0,          LVL_60,             "АЦП при 60л");
+    MAKE_MENU   (lvl_80,        lvl_100,        lvl_60,         lvl_calib,      EDITED_VAL,     0,          LVL_80,             "АЦП при 80л");
+    MAKE_MENU   (lvl_100,       lvl_0,          lvl_80,         lvl_calib,      EDITED_VAL,     0,          LVL_100,            "АЦП при 100л");
   /*MAKE_MENU     (tmpr_calib,    connection,    lvl_calib,       main_page,      adc_0,          11,         TMPR_CALIB,         "Калиб. темпер.");
     MAKE_MENU   (adc_0,         adc_10,         adc_100,        tmpr_calib,     NULL_ENTRY,     0,          ADC_0,              "АЦП при 0°C");
     MAKE_MENU   (adc_10,        adc_20,         adc_0,          tmpr_calib,     NULL_ENTRY,     0,          ADC_10,             "АЦП при 10°C");
@@ -64,8 +72,8 @@ MAKE_MENU       (main_page,     NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     
     MAKE_MENU   (adc_90,        adc_100,        adc_80,         tmpr_calib,     NULL_ENTRY,     0,          ADC_90,             "АЦП при 90°C");
     MAKE_MENU   (adc_100,       adc_0,          adc_90,         tmpr_calib,     NULL_ENTRY,     0,          ADC_100,            "АЦП при 100°C");*/
   MAKE_MENU     (connection,    display,        lvl_calib,      main_page,      mdb_addr,       8,          CONNECTION,         "Связь");
-    MAKE_MENU   (mdb_addr,      bitrate,        noise_err,      connection,     NULL_ENTRY,     0,          MDB_ADDR,           "Адрес ModBUS");
-    MAKE_MENU   (bitrate,       recieved_cnt,   mdb_addr,       connection,     NULL_ENTRY,     0,          MDB_BITRATE,        "Битрейт");
+    MAKE_MENU   (mdb_addr,      bitrate,        noise_err,      connection,     EDITED_VAL,     0,          MDB_ADDR,           "Адрес ModBUS");
+    MAKE_MENU   (bitrate,       recieved_cnt,   mdb_addr,       connection,     EDITED_VAL,     0,          MDB_BITRATE,        "Битрейт");
     MAKE_MENU   (recieved_cnt,  send_cnt,       bitrate,        connection,     NULL_ENTRY,     0,          MDB_RECIEVED_CNT,   "Принято");
     MAKE_MENU   (send_cnt,      overrun_err,    recieved_cnt,   connection,     NULL_ENTRY,     0,          MDB_SEND_CNT,       "Отправлено");
     MAKE_MENU   (overrun_err,   parity_err,     send_cnt,       connection,     NULL_ENTRY,     0,          MDB_OVERRUN_ERR,    "Ошибки чтения");
@@ -73,16 +81,16 @@ MAKE_MENU       (main_page,     NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     
     MAKE_MENU   (frame_err,     noise_err,      parity_err,     connection,     NULL_ENTRY,     0,          MDB_FRAME_ERR,      "Ошибки кадра");
     MAKE_MENU   (noise_err,     mdb_addr,       frame_err,      connection,     NULL_ENTRY,     0,          MDB_NOISE_ERR,      "Ошибки помехи");
   MAKE_MENU     (display,       time,           connection,     main_page,      light_lvl,      2,          DISPLAY,            "Дисплей");
-    MAKE_MENU   (light_lvl,     auto_off,       auto_off,       display,        NULL_ENTRY,     0,          LIGHT_LVL,          "Яркость");
-    MAKE_MENU   (auto_off,      light_lvl,      light_lvl,      display,        NULL_ENTRY,     0,          AUTO_OFF,           "Выкл. подсв.");
+    MAKE_MENU   (light_lvl,     auto_off,       auto_off,       display,        EDITED_VAL,     0,          LIGHT_LVL,          "Яркость");
+    MAKE_MENU   (auto_off,      light_lvl,      light_lvl,      display,        EDITED_VAL,     0,          AUTO_OFF,           "Выкл. подсв.");
   MAKE_MENU     (time,          date,           display,        main_page,      time_min,       3,          TIME,               "Время");
-    MAKE_MENU   (time_hour,     time_min,       time_sec,       time,           NULL_ENTRY,     0,          TIME_HOUR,          "Часы");
-    MAKE_MENU   (time_min,      time_sec,       time_hour,      time,           NULL_ENTRY,     0,          TIME_MIN,           "Минуты");
-    MAKE_MENU   (time_sec,      time_hour,      time_min,       time,           NULL_ENTRY,     0,          TIME_SEC,           "Секунды");
+    MAKE_MENU   (time_hour,     time_min,       time_sec,       time,           EDITED_VAL,     0,          TIME_HOUR,          "Часы");
+    MAKE_MENU   (time_min,      time_sec,       time_hour,      time,           EDITED_VAL,     0,          TIME_MIN,           "Минуты");
+    MAKE_MENU   (time_sec,      time_hour,      time_min,       time,           EDITED_VAL,     0,          TIME_SEC,           "Секунды");
   MAKE_MENU     (date,          common_info,    time,           main_page,      date_month,     3,          DATE,               "Дата");
-    MAKE_MENU   (date_day,      date_month,     date_year,      date,           NULL_ENTRY,     0,          DATE_DAY,           "День");
-    MAKE_MENU   (date_month,    date_year,      date_day,       date,           NULL_ENTRY,     0,          DATE_MONTH,         "Месяц");
-    MAKE_MENU   (date_year,     date_day,       date_month,     date,           NULL_ENTRY,     0,          DATE_YEAR,          "Год");
+    MAKE_MENU   (date_day,      date_month,     date_year,      date,           EDITED_VAL,     0,          DATE_DAY,           "День");
+    MAKE_MENU   (date_month,    date_year,      date_day,       date,           EDITED_VAL,     0,          DATE_MONTH,         "Месяц");
+    MAKE_MENU   (date_year,     date_day,       date_month,     date,           EDITED_VAL,     0,          DATE_YEAR,          "Год");
 
 MAKE_MENU       (save_changes,  NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     0,          SAVE_CHANGES,       "Сохранить изм.");
 
@@ -108,7 +116,9 @@ void menu_init (void){
 }
 
 void menuChange(menuItem* NewMenu){
-    if (NewMenu != &NULL_ENTRY){
+    if ((NewMenu != &NULL_ENTRY)&&(NewMenu != &EDITED_VAL)){
         selectedMenuItem = NewMenu;
+    }else if(NewMenu == &EDITED_VAL){
+        navigation_style = DIGIT_EDIT;
     }
 }
