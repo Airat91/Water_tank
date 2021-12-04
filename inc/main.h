@@ -60,7 +60,7 @@
 #include "dcts.h"
 
 
-#define AIR_PORT GPIOA
+/*#define AIR_PORT GPIOA
 #define AIR_PIN  LL_GPIO_PIN_7
 #define FLOW_PORT GPIOA
 #define FLOW_PIN  LL_GPIO_PIN_5
@@ -81,7 +81,7 @@
 #define STEP_OUT1_2 LL_GPIO_PIN_14
 #define STEP_OUT2_1 LL_GPIO_PIN_11
 #define STEP_OUT2_2 LL_GPIO_PIN_12
-#define STEP_PORT GPIOB
+#define STEP_PORT GPIOB*/
 
 #define SAVED_PARAMS_SIZE 10
 

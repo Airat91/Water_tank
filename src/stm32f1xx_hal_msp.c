@@ -142,7 +142,8 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
     __HAL_RCC_ADC1_CLK_DISABLE();
   
 
-    HAL_GPIO_DeInit(GPIOA, ADC0_PIN|ADC1_PIN);
+    HAL_GPIO_DeInit(WTR_TMP_PORT, WTR_TMP_PIN);
+    HAL_GPIO_DeInit(WTR_LEV_PORT, WTR_LEV_PIN);
 
   /* USER CODE BEGIN ADC1_MspDeInit 1 */
 

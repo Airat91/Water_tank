@@ -29,12 +29,20 @@
  * \par Supported fonts
  * 
  * Currently, these fonts are supported:
+ *  - 5 x 7 pixels
  *  - 7 x 10 pixels
  *  - 11 x 18 pixels
  *  - 16 x 26 pixels
+ *  - 16 x 16 pixels icons
  */
 #include "stm32f1xx_hal.h"
 #include "string.h"
+
+#define FONT_5x7    1
+#define FONT_7x10    1
+#define FONT_11x18    0
+#define FONT_16x26    0
+#define FONT_16x16_ICONS    1
 
 /**
  * @defgroup FONTS
@@ -55,6 +63,18 @@ typedef struct {
     uint16_t shift; /*!< Shift char number for first symbol*/
     void *data; /*!< Pointer to data font data array */
 } FontDef_t;
+
+/**
+ * @brief  5 x 7 pixels font size structure
+ * @ingroup FONTS
+ */
+extern FontDef_t Icon_16x16;
+
+/**
+ * @brief Data of Font_5x7
+ * @ingroup FONTS
+ */
+extern const uint16_t Icon16x16[];
 
 /**
  * @brief  5 x 7 pixels font size structure

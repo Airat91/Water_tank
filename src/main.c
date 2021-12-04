@@ -66,7 +66,7 @@
 #include "uart.h"
 #include "modbus.h"
 #include "ds18b20.h"
-//#include "time.h"
+#include "time.h"
 
 /**
   * @defgroup MAIN
@@ -74,8 +74,12 @@
 
 #define FEEDER 0
 #define RELEASE 1
-# define PARILKA_DCTS 1
+#define PARILKA_DCTS 1
 #define RTC_KEY 0xABCD
+
+#define RTC_HAL     1
+#define RTC_UNIX    2
+#define RTC_TIME    RTC_HAL //(RTC_HAL or RTC_UNIX)
 
 typedef enum{
     READ_FLOAT_SIGNED = 0,
@@ -324,10 +328,13 @@ void SystemClock_Config(void)
 
 /* RTC init function */
 static void RTC_Init(void){
+#if (RTC_TIME == RTC_HAL)
     RTC_TimeTypeDef sTime = {0};
     RTC_DateTypeDef sDate = {0};
-    //time_t unix_time = 0;
-    //struct tm system_time = {0};
+#elif (RTC_TIME == RTC_UNIX)
+    time_t unix_time = 0;
+    struct tm system_time = {0};
+#endif // RTC_TIME
     __HAL_RCC_BKP_CLK_ENABLE();
     __HAL_RCC_PWR_CLK_ENABLE();
     __HAL_RCC_RTC_ENABLE();
@@ -346,7 +353,19 @@ static void RTC_Init(void){
     }
 
     if(dcts.dcts_rtc.state == RTC_STATE_SET){
-/*
+#if (RTC_TIME == RTC_HAL)
+        sTime.Hours = dcts.dcts_rtc.hour;
+        sTime.Minutes = dcts.dcts_rtc.minute;
+        sTime.Seconds = dcts.dcts_rtc.second;
+
+        sDate.Date = dcts.dcts_rtc.day;
+        sDate.Month = dcts.dcts_rtc.month;
+        sDate.Year = (uint8_t)(dcts.dcts_rtc.year - 2000);
+
+        HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+        HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+#elif (RTC_TIME == RTC_UNIX)
+
         system_time.tm_hour = dcts.dcts_rtc.hour;
         system_time.tm_min = dcts.dcts_rtc.minute;
         system_time.tm_sec = dcts.dcts_rtc.second;
@@ -358,17 +377,7 @@ static void RTC_Init(void){
         unix_time = mktime(&system_time);
 
         RTC_write_cnt(unix_time);
-*/
-        sTime.Hours = dcts.dcts_rtc.hour;
-        sTime.Minutes = dcts.dcts_rtc.minute;
-        sTime.Seconds = dcts.dcts_rtc.second;
-
-        sDate.Date = dcts.dcts_rtc.day;
-        sDate.Month = dcts.dcts_rtc.month;
-        sDate.Year = (uint8_t)(dcts.dcts_rtc.year - 2000);
-
-        HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
-        HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+#endif //RTC_TIME
         dcts.dcts_rtc.state = RTC_STATE_READY;
     }
 }
@@ -413,32 +422,23 @@ static int RTC_write_cnt(time_t cnt_value){
  */
 #define DEFAULT_TASK_PERIOD 500
 void rtc_task(void const * argument){
-
     (void)argument;
+#if (RTC_TIME == RTC_HAL)
     RTC_TimeTypeDef time = {0};
     RTC_DateTypeDef date = {0};
-    //time_t unix_time = 0;
-    //struct tm system_time = {0};
+#elif (RTC_TIME == RTC_UNIX)
+    time_t unix_time = 0;
+    struct tm system_time = {0};
+#endif // RTC_TIME
     RTC_Init();
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
         switch (dcts.dcts_rtc.state) {
         case RTC_STATE_READY:   //update dcts_rtc from rtc
+#if (RTC_TIME == RTC_HAL)
             HAL_RTC_GetDate(&hrtc,&date,RTC_FORMAT_BIN);
             HAL_RTC_GetTime(&hrtc,&time,RTC_FORMAT_BIN);
-            /*unix_time = (time_t)(RTC->CNTL);
-            unix_time |= (time_t)(RTC->CNTH<<16);
-            system_time = *localtime(&unix_time);*/
-
             taskENTER_CRITICAL();
-            /*dcts.dcts_rtc.hour      = (u8)system_time.tm_hour;
-            dcts.dcts_rtc.minute    = (u8)system_time.tm_min;
-            dcts.dcts_rtc.second    = (u8)system_time.tm_sec;
-
-            dcts.dcts_rtc.day       = (u8)system_time.tm_mday;
-            dcts.dcts_rtc.month     = (u8)system_time.tm_mon;
-            dcts.dcts_rtc.year      = (u8)system_time.tm_year + 1900;
-            dcts.dcts_rtc.weekday   = (u8)system_time.tm_wday;*/
             dcts.dcts_rtc.hour = time.Hours;
             dcts.dcts_rtc.minute = time.Minutes;
             dcts.dcts_rtc.second = time.Seconds;
@@ -448,19 +448,26 @@ void rtc_task(void const * argument){
             dcts.dcts_rtc.year = date.Year + 2000;
             dcts.dcts_rtc.weekday = date.WeekDay;
             taskEXIT_CRITICAL();
+#elif (RTC_TIME == RTC_UNIX)
+            unix_time = (time_t)(RTC->CNTL);
+            unix_time |= (time_t)(RTC->CNTH<<16);
+            system_time = *localtime(&unix_time);
+
+            taskENTER_CRITICAL();
+            dcts.dcts_rtc.hour      = (u8)system_time.tm_hour;
+            dcts.dcts_rtc.minute    = (u8)system_time.tm_min;
+            dcts.dcts_rtc.second    = (u8)system_time.tm_sec;
+
+            dcts.dcts_rtc.day       = (u8)system_time.tm_mday;
+            dcts.dcts_rtc.month     = (u8)system_time.tm_mon;
+            dcts.dcts_rtc.year      = (u8)system_time.tm_year + 1900;
+            dcts.dcts_rtc.weekday   = (u8)system_time.tm_wday;
+
+            taskEXIT_CRITICAL();
+#endif // RTC_TIME
             break;
         case RTC_STATE_SET:     //set new values from dcts_rtc
-            /*system_time.tm_hour = dcts.dcts_rtc.hour;
-            system_time.tm_min  = dcts.dcts_rtc.minute;
-            system_time.tm_sec  = dcts.dcts_rtc.second;
-
-            system_time.tm_mday = dcts.dcts_rtc.day;
-            system_time.tm_mon  = dcts.dcts_rtc.month;
-            system_time.tm_year = dcts.dcts_rtc.year - 1900;
-
-            unix_time = mktime(&system_time);
-
-            RTC_write_cnt(unix_time);*/
+#if (RTC_TIME == RTC_HAL)
             time.Hours = dcts.dcts_rtc.hour;
             time.Minutes = dcts.dcts_rtc.minute;
             time.Seconds = dcts.dcts_rtc.second;
@@ -471,7 +478,19 @@ void rtc_task(void const * argument){
 
             HAL_RTC_SetTime(&hrtc, &time, RTC_FORMAT_BIN);
             HAL_RTC_SetDate(&hrtc, &date, RTC_FORMAT_BIN);
+#elif (RTC_TIME == RTC_UNIX)
+            system_time.tm_hour = dcts.dcts_rtc.hour;
+            system_time.tm_min  = dcts.dcts_rtc.minute;
+            system_time.tm_sec  = dcts.dcts_rtc.second;
 
+            system_time.tm_mday = dcts.dcts_rtc.day;
+            system_time.tm_mon  = dcts.dcts_rtc.month;
+            system_time.tm_year = dcts.dcts_rtc.year - 1900;
+
+            unix_time = mktime(&system_time);
+
+            RTC_write_cnt(unix_time);
+#endif // RTC_TIME
             dcts.dcts_rtc.state = RTC_STATE_READY;
             break;
         default:
