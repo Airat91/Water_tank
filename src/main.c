@@ -79,7 +79,7 @@
 
 #define RTC_HAL     1
 #define RTC_UNIX    2
-#define RTC_TIME    RTC_HAL //(RTC_HAL or RTC_UNIX)
+#define RTC_TIME    RTC_UNIX //(RTC_HAL or RTC_UNIX)
 
 typedef enum{
     READ_FLOAT_SIGNED = 0,
@@ -179,7 +179,7 @@ static uint16_t bitrate_array_pointer = 0;
 void dcts_init (void) {
 
     dcts.dcts_id = DCTS_ID_COMBINED;
-    strcpy (dcts.dcts_ver, "1.2.0");
+    strcpy (dcts.dcts_ver, "1.2.1");
     strcpy (dcts.dcts_name, "Banya");
     strcpy (dcts.dcts_name_cyr, "Баня");
     dcts.dcts_address = 0x0A;
@@ -371,7 +371,7 @@ static void RTC_Init(void){
         system_time.tm_sec = dcts.dcts_rtc.second;
 
         system_time.tm_mday = dcts.dcts_rtc.day;
-        system_time.tm_mon = dcts.dcts_rtc.month;
+        system_time.tm_mon = dcts.dcts_rtc.month - 1;
         system_time.tm_year = dcts.dcts_rtc.year - 1900;
 
         unix_time = mktime(&system_time);
@@ -459,9 +459,13 @@ void rtc_task(void const * argument){
             dcts.dcts_rtc.second    = (u8)system_time.tm_sec;
 
             dcts.dcts_rtc.day       = (u8)system_time.tm_mday;
-            dcts.dcts_rtc.month     = (u8)system_time.tm_mon;
+            dcts.dcts_rtc.month     = (u8)system_time.tm_mon + 1;
             dcts.dcts_rtc.year      = (u8)system_time.tm_year + 1900;
-            dcts.dcts_rtc.weekday   = (u8)system_time.tm_wday;
+            if(system_time.tm_wday == 0){
+                dcts.dcts_rtc.weekday = 7;
+            }else{
+                dcts.dcts_rtc.weekday   = (u8)system_time.tm_wday;
+            }
 
             taskEXIT_CRITICAL();
 #endif // RTC_TIME
@@ -484,7 +488,7 @@ void rtc_task(void const * argument){
             system_time.tm_sec  = dcts.dcts_rtc.second;
 
             system_time.tm_mday = dcts.dcts_rtc.day;
-            system_time.tm_mon  = dcts.dcts_rtc.month;
+            system_time.tm_mon  = dcts.dcts_rtc.month - 1;
             system_time.tm_year = dcts.dcts_rtc.year - 1900;
 
             unix_time = mktime(&system_time);
