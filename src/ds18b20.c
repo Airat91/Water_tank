@@ -254,7 +254,7 @@ ds18b20_data_t ds18b20_get(void){
     for(uint8_t i = 0; i < 9; i++){
         buff[i] = read_data();
     }
-    data.tmpr = (buff[0]+(uint16_t)(buff[1]<<8)) * DS18B20_RESOLUTION;
+    data.tmpr = (int16_t)(buff[0]+(uint16_t)(buff[1]<<8)) * DS18B20_RESOLUTION;
     if(crc8_maxim(buff,8)==buff[8]){
         data.valid = 1;
     }else{
